@@ -77,7 +77,7 @@ par.scansSelect.(par.task) = 1:length(par.(par.task).trialsPerRun);
 % fill in at a later date
 
 %% directory information
-par.exptdir = '/Users/Jesse/fMRI/COUNTERMEASURES/';
+par.exptdir = '/hsgs/projects/awagner/jtboyd/CM_ret/';
 par.scriptsdir = fullfile(par.exptdir,'Scripts');
 par.datadir = fullfile(par.exptdir,'Data');
 par.funcdir = fullfile(par.datadir,'Functional');

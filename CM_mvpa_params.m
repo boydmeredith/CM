@@ -1,4 +1,4 @@
-function [expt, flags, classArgs, S, idxTr, idxTe, par]= CM_mvpa_params(subj_id, task)
+function [expt, classArgs, S, idxTr, idxTe, par]= CM_mvpa_params(subj_id, task)
 
 % establish parameters for mvpa analysis
 % <subj_id> - identifier for the given subject. Can be numerical or a
@@ -6,29 +6,29 @@ function [expt, flags, classArgs, S, idxTr, idxTe, par]= CM_mvpa_params(subj_id,
 % <task> 'perc' or 'mnem'
 
 %% EXPT SPECIFIC INFO
-expt.name = 'COUNTERMEASURES';
-expt.dir = '/Users/Jesse/fMRI/COUNTERMEASURES/Data/Functional/'; % top-level expt. directory where individual subject folders live
+expt.name = 'CM_ret';
+expt.dir = '/hsgs/projects/awagner/jtboyd/CM_ret/Data/Functional/'; % top-level expt. directory where individual subject folders live
 expt.mvpaDirStr = 'mvpa';
 %expt.dataImgsToUse = 'raw_filenames.mat'; % .mat file containing names of all functional images (must exist for each subject; can be created by running cellstr(SPM.xY.P) on subject's SPM.mat file)
 expt.numTpPerRun = 256; % number of TRs per scanning run (coded for fixed value; adjust code structure if variable TR counts across runs)
 %expt.roiName = 'rLR_PrePostCentralandSMA';  % name of mask to be used for voxel selection (can be a small ROI, a whole-brain mask, or anywhere in between)
 %flags determine how classifier wrapper behaves
-flags.num_full_iter = 1; % number of times to run the entire classification process, including feature selection
-flags.num_iter_with_same_data = 1; % number of times to run the classfication step for a given subset of data
-flags.num_results_iter = 1; % number of times to run the post-feature selection classification process (select subset of the data and train/test classifier)
-flags.equate_number_of_trials_in_cond_1_and_2 = 1; % equate number of trials in conditions 1 and 2 (RECOMMENDED)
-flags.anova_p_thresh = 1;  % p-value threshold for feature selection ANOVA (1 = DON'T PERFORM ANY FEATURE SELECTION)
-flags.anova_nVox_thresh = 0; % alternative to specifying p-value threshold; uses top N voxels (0 = DON'T PERFORM ANY FEATURE SELECTION)
-flags.perform_second_round_of_zscoring = 1;  % z-score data again immediately prior to classification (because trial selection and TR selection undoes initial z-scoring)
-flags.remove_artdetect_outliers = 0; % 1 = remove trials that exhibited movement or global signal artifacts as determined by ArtDetect
-flags.artdetect_motion_thresh = 0; % specify ArtDetect bin for motion outliers (requires that custom ArtDetect scripts have already been run to flag outlier trials)
-flags.artdetect_global_signal_thresh = 0; % specify ArtDetect bin for global signal outliers (requires that custom ArtDetect scripts have already been run to flag outlier trials)
-flags.remove_outlier_trials = 3;  % on-the-fly outlier detection/removal; specify how many std dev from whole brain mean to exclude as outliers (0 = don't exclude any trials)
-flags.generate_importance_maps = 0; % 1=generate importance maps based on classification weights (scaled by the mean univariate activity of each condition)
-flags.write_data_log_to_text_file=0; % save a .txt file that logs critical classification performance data
-flags.save_data_log_as_mat_file =1; % save a .mat file that logs critical classification performance data
-flags.optimize_penalty_param = 0; % 1 = peformed nested cross-validation for empirical penalty optimization
-flags.scramble = 0;
+expt.num_full_iter = 1; % number of times to run the entire classification process, including feature selection
+expt.num_iter_with_same_data = 1; % number of times to run the classfication step for a given subset of data
+expt.num_results_iter = 10; % number of times to run the post-feature selection classification process (select subset of the data and train/test classifier)
+expt.equate_number_of_trials_in_cond_1_and_2 = 1; % equate number of trials in conditions 1 and 2 (RECOMMENDED)
+expt.anova_p_thresh = 1;  % p-value threshold for feature selection ANOVA (1 = DON'T PERFORM ANY FEATURE SELECTION)
+expt.anova_nVox_thresh = 0; % alternative to specifying p-value threshold; uses top N voxels (0 = DON'T PERFORM ANY FEATURE SELECTION)
+expt.perform_second_round_of_zscoring = 1;  % z-score data again immediately prior to classification (because trial selection and TR selection undoes initial z-scoring)
+expt.remove_artdetect_outliers = 0; % 1 = remove trials that exhibited movement or global signal artifacts as determined by ArtDetect
+expt.artdetect_motion_thresh = 0; % specify ArtDetect bin for motion outliers (requires that custom ArtDetect scripts have already been run to flag outlier trials)
+expt.artdetect_global_signal_thresh = 0; % specify ArtDetect bin for global signal outliers (requires that custom ArtDetect scripts have already been run to flag outlier trials)
+expt.remove_outlier_trials = 3;  % on-the-fly outlier detection/removal; specify how many std dev from whole brain mean to exclude as outliers (0 = don't exclude any trials)
+expt.generate_importance_maps = 0; % 1=generate importance maps based on classification weights (scaled by the mean univariate activity of each condition)
+expt.write_data_log_to_text_file=0; % save a .txt file that logs critical classification performance data
+expt.save_data_log_as_mat_file =1; % save a .mat file that logs critical classification performance data
+expt.optimize_penalty_param = 0; % 1 = peformed nested cross-validation for empirical penalty optimization
+expt.scramble = 0;
 %class args determine which classifier to use and what it should do
 plrArgs.train_funct_name = 'train_pLR';
 plrArgs.test_funct_name = 'test_pLR';
@@ -56,14 +56,14 @@ classArgs = plrArgs;
 % expt.trStr = ['TRs' strrep(num2str(expt.trWeights),' ','')];
 % expt.penStr = '';
 % if isfield(classArgs,'penalty')
-%     if flags.optimize_penalty_param == 1
+%     if expt.optimize_penalty_param == 1
 %         expt.penStr = 'OPTIMAL_pen_';
 %     else
 %         expt.penStr = ['_pen' num2str(classArgs.penalty) '_'];
 %     end
 % end
 expt.saveName = '';
-if flags.scramble ==1
+if expt.scramble ==1
     expt.saveName = 'SCRAMBLED_'
 end
 
