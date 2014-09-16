@@ -18,7 +18,7 @@ for subNum=subj_array
         expt, flags
         pause(10)
     end
-    fprintf('Beginning subject CM%03d...', subNum);
+    fprintf('\n\nBeginning subject CM%03d...', subNum);
     
     %% load or create subj and temporally condense. load onsets to use as regressors and condense so that we have one per trial (instead of 1 per TR)
     subjId = sprintf(expt.subjIdFormat,subNum);
@@ -26,11 +26,8 @@ for subNum=subj_array
     onsetsFile = fullfile(thisMvpaDir, expt.onsetsFname);
     expt.scanfiles = vertcat(par.swascanfiles.(par.task));
     nScanFiles = length(expt.scanfiles);
-    
-
    % dataImgsFile = fullfile(thisMvpaDir, expt.dataImgsToUse);
    %load(dataImgsFile); %loads predefined cell array called expt.scanfiles into memory
-   
     load(onsetsFile); % load in your SPM-formatted onsets file (specifies onsets of each event time in seconds)
     
     expt.condCols = makeCondCols(expt, names);
@@ -42,7 +39,6 @@ for subNum=subj_array
     for i =1:nConds
         nExamples(i) = length(onsets{expt.condCols(i)});
     end
-
 
     %if subj structure hasn't been created and saved, do data proc routine (load pattern, detrend, high-pass, filter, z-score)
     expt.subjFname = [thisMvpaDir '/' subjId '_' expt.roiName '_s8mm_wa.mat']; %having this previously saved avoids time-consuming data extraction and preproc
@@ -76,7 +72,7 @@ for subNum=subj_array
     temporally_condensed_data = squeeze(sum(data_by_TR(expt.trsToAverageOver,:,:),1));
     clear data_by_TR;
 
-    
+    %% look for outliers 
     if flags.remove_artdetect_outliers == 1
         % Exclude trials determined to be outliers by custom ArtDetect script
         % Guide to outlier file cell arrays... Movement thresholds: .2 .25 .3
