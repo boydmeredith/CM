@@ -18,10 +18,10 @@ if ~isstruct(par)
 end
 
 %cd to subjects behavioral directory
-if ~exist(par.behavdir,'dir')
-    mkdir(par.behavdir);
-end
-cd(par.behavdir);
+%if ~exist(par.behavdir,'dir')
+ %   mkdir(par.behavdir);
+%end
+%cd(par.behavdir);
 
 %trialData compiles the data from the scans
 dFN_test = dir(fullfile(par.logdir, '*test*.mat'));
@@ -96,10 +96,16 @@ idx.new = strcmp(oldNew , 'NEW');
 idx.task = cat(2,trialData.task)';
 idx.ex = (idx.task == 2);
 idx.cm = (idx.task == 3);
-idx.hit = idx.indexFinger .* idx.old;
-idx.fa = idx.indexFinger .* idx.new;
-idx.miss = idx.middleFinger .* idx.old;
-idx.cr = idx.middleFinger .* idx.new;
+idx.s_old = idx.indexFinger .* idx.ex + idx.middleFinger .* idx.cm;
+idx.s_new = idx.indexFinger .* idx.cm + idx.middleFinger .* idx.ex;
+
+
+idx.hit = idx.s_old .* idx.old;
+idx.fa = idx.s_old .* idx.new;
+idx.miss = idx.s_new .* idx.old;
+idx.cr = idx.s_new .* idx.new;
+
+
 
 idx.exLeftHand = idx.leftHand .* idx.ex;
 idx.cmLeftHand = idx.leftHand .* idx.cm;

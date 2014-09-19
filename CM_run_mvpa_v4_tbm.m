@@ -1,21 +1,35 @@
 function [res]= CM_run_mvpa_v4_tbm(subj_array, nickname, varargin)
-%function [res] = CM_run_mvpa_v4_tbm(subj_array, expt.trnSubCondsToBal, expt.tstSubCondsToBal, nickname)
+%function [res] = CM_run_mvpa_v4_tbm(subj_array, nickname, varargin)
+%inputs:
+%subj_array - the subject numbers desired for classification. default is all subs ([1,3:10,12:26])
+%nickname - string desired for saving results, if not specified, default is based on input arguments
+%varargin - parameters for classification will be automatically determined by CM_mvpa_params if not otherwise specified. Parameters that can be set include: 'condNames', 'which_traintest', 'trWeights', 'roiName', and others
+%outputs:
+%res - a structure that keeps track of the parameters used for classification as well as the results of each iteration of classifcation
+
+%set default subj_array
 if isempty(subj_array)
     subj_array=[1,3:10,12:26];
 end
 
-%% for every subject: preproc, classify & spit out results as specified
+%% for every subject: preproc, classify & output results as specified
 for subNum=subj_array
     tic;
     %load relevant info with CM_mvpa_params
-    [expt, flags, classArgs, ~, ~, ~, par] = CM_mvpa_params(subNum, 'ret');
+    [expt, classArgs, ~, ~, ~, par] = CM_mvpa_params(subNum, 'ret');
+    expt = acceptUserInput(expt, varargin);
+    if isempty(nickname)
+	condNamesStr = strrep(strjoin(expt.condNames),',','V');
+	trTeStr = strrep(num2str(expt.which_traintest),'  ','_');
+	trWStr = strrep(num2str(expt.trWeights),' ','_');
+	nickname = sprintf('conds_%s_trTe%s_trW%s_roi%s',condNamesStr,trTeStr,trWStr,expt.roiName);
+    end
     expt.saveName = [expt.saveName nickname];
     expt.impMapDirStr=[expt.dir '/mvpa_results/within_subj_class/importance_maps/' expt.saveName];
-    expt = acceptUserInput(expt, varargin);
     expt.roiFname = [expt.dir '/Masks/' expt.roiName '.nii']; % specific path to mask file
     if subj_array(1) == subNum
         fprintf('\n\n\nPLEASE CHECK VERIFY THESE CLASSIFICATION PARAMETERS!\nContinuing in 10s...\n\n\n');
-        expt, flags
+        expt
         pause(10)
     end
     fprintf('\n\nBeginning subject CM%03d...', subNum);
@@ -73,13 +87,16 @@ for subNum=subj_array
     clear data_by_TR;
 
     %% look for outliers 
-    if flags.remove_artdetect_outliers == 1
+
+
+
+    if expt.remove_artdetect_outliers == 1
         % Exclude trials determined to be outliers by custom ArtDetect script
         % Guide to outlier file cell arrays... Movement thresholds: .2 .25 .3
         % .35 .4 .4 .5 Global signal thresholds: 2 2.5 3 3.5 4 4.5 5
         load([expt.dir '/outlier_indices/' subjId '_outlier_indices']); %load outlier indices
-        m_outliers = movement_outlier_trials{flags.artdetect_motion_thresh};  % remove trials with more than .35mm/TR of movement
-        gs_outliers = global_signal_outlier_trials{flags.artdetect_global_signal_thresh}; % remove trials with global signal change of +/- 3.5 SD from mean
+        m_outliers = movement_outlier_trials{expt.artdetect_motion_thresh};  % remove trials with more than .35mm/TR of movement
+        gs_outliers = global_signal_outlier_trials{expt.artdetect_global_signal_thresh}; % remove trials with global signal change of +/- 3.5 SD from mean
         combined_outliers = union(m_outliers,gs_outliers);
         condensedCondRegs(:,combined_outliers) = 0;
         display([num2str(length(m_outliers)) ' movement outlier trials flagged']);
@@ -87,11 +104,11 @@ for subNum=subj_array
         display([num2str(length(combined_outliers)) ' total outlier trials excluded']);
     end
     % on-the-fly outlier detection/removal;
-    if flags.remove_outlier_trials ~= 0
+    if expt.remove_outlier_trials ~= 0
         mean_across_voxels = mean(temporally_condensed_data,1);
         z_mean_across_voxels = zscore(mean_across_voxels);
-        upper_outliers = find(z_mean_across_voxels> flags.remove_outlier_trials);
-        lower_outliers = find(z_mean_across_voxels< -1 * flags.remove_outlier_trials);
+        upper_outliers = find(z_mean_across_voxels> expt.remove_outlier_trials);
+        lower_outliers = find(z_mean_across_voxels< -1 * expt.remove_outlier_trials);
         all_outliers = union(upper_outliers,lower_outliers)
         condensedCondRegs(:,all_outliers) = 0;
     end
@@ -118,9 +135,9 @@ for subNum=subj_array
     %% For num full iterations: use loaded subj patterns, resulting temporally condensed data, and regressors (condensed to one value per trial)
     subj_original = subj; % backup the subj structure before entering loop
     condensedCondRegsOrig = condensedCondRegs; % backup condensed_regs_all before entering k-loop
-    results = cell(flags.num_full_iter*flags.num_results_iter*flags.num_iter_with_same_data,1); %preallocate results
+    results = cell(expt.num_full_iter*expt.num_results_iter*expt.num_iter_with_same_data,1); %preallocate results
     currNumTotalIters = 0;  %initialize counter (gets incremented during each classification run-through)
-    for fullIterNum = 1:flags.num_full_iter
+    for fullIterNum = 1:expt.num_full_iter
         %restore from backups
         subj = subj_original;
         condensedCondRegs = condensedCondRegsOrig;
@@ -153,15 +170,15 @@ for subNum=subj_array
         
         % feature selection
         statmap_arg.use_mvpa_ver = true;
-        if flags.anova_p_thresh ~= 1
-            subj = JR_feature_select(subj,'epi_d_hp_z_condensed','conds','runs_xval','thresh',flags.anova_p_thresh, 'statmap_funct','statmap_anova','statmap_arg',statmap_arg);
+        if expt.anova_p_thresh ~= 1
+            subj = JR_feature_select(subj,'epi_d_hp_z_condensed','conds','runs_xval','thresh',expt.anova_p_thresh, 'statmap_funct','statmap_anova','statmap_arg',statmap_arg);
             classifier_mask = subj.masks{end}.group_name; % use group of masks created by ANOVA
         else
             classifier_mask = subj.masks{1}.name; % use original mask
         end
         % run feature selection ANOVA: specify #of voxels (if desired)
-        if flags.anova_nVox_thresh ~=0
-            subj = JR_feature_select_top_N_vox(subj,'epi_d_hp_z_condensed','conds','runs_xval','expt.nVox_thresh',flags.anova_nVox_thresh,'statmap_funct','statmap_anova','statmap_arg',statmap_arg);
+        if expt.anova_nVox_thresh ~=0
+            subj = JR_feature_select_top_N_vox(subj,'epi_d_hp_z_condensed','conds','runs_xval','expt.nVox_thresh',expt.anova_nVox_thresh,'statmap_funct','statmap_anova','statmap_arg',statmap_arg);
             classifier_mask = subj.masks{end}.group_name; % use group of masks created by ANOVA
         else
             classifier_mask = subj.masks{1}.name; % use original mask
@@ -170,14 +187,14 @@ for subNum=subj_array
         %% For num results iter: balance, z-score & run classifier for each iteration with same data
         subj_prebalancing = subj; % backup the subj structure before entering loop
         active_trials_prebalancing = active_trials; % backup condensed_regs_all before entering loop
-        for resultsIterNum = 1: flags.num_results_iter
+        for resultsIterNum = 1: expt.num_results_iter
             subj = subj_prebalancing;
             active_trials = active_trials_prebalancing;
             new_active_trials =[];
             new_actives_selector= zeros(1,size(condensedCondRegs,2));
             % balance the number of Class A and Class B trials within run,
             % exclude random subsets of trials from each run
-            if flags.equate_number_of_trials_in_cond_1_and_2 == 1
+            if expt.equate_number_of_trials_in_cond_1_and_2 == 1
                 subj = tbm_create_balanced_xvalid_selectors(subj,'conds','runs_xval', trnCondensedRegsToBal, tstCondensedRegsToBal); % creates a new 'runs_xval_bal' selector group
             end
             % we need to get a new list of the 'active trials'
@@ -190,12 +207,12 @@ for subNum=subj_array
             active_trials = new_active_trials;
             
             % z-score again, if specified
-            if flags.perform_second_round_of_zscoring == 1  % z-score the data prior to classification (active trials only)
+            if expt.perform_second_round_of_zscoring == 1  % z-score the data prior to classification (active trials only)
                 subj.patterns{5}.mat(:,active_trials) = zscore(subj.patterns{5}.mat(:,active_trials)')';
                 display('Performing second round of z-scoring')
             end
             %optimize penalty, if specified
-            if flags.optimize_penalty_param == 1 && currNumTotalIters == 0 % find empirically optimal penalty via nested cross-validation
+            if expt.optimize_penalty_param == 1 && currNumTotalIters == 0 % find empirically optimal penalty via nested cross-validation
                 %run this function during the first pass through; use
                 %resulting value for subsequent classifications
                 [subj best_penalties penalty_iteration_results] = optimal_pLR_penalty(subj,'epi_d_hp_z_condensed','conds','runs_final_xval','runs_final',classifier_mask,'conditions_of_interest_final','use_iteration_perf',false,'perform_final_classification',false);
@@ -203,16 +220,16 @@ for subNum=subj_array
             end
             
             %% for each iter with same data: PERFORM CROSS-VALIDATION (loop relevant if using a stochastic (i.e. non-deterministic) classification algorithm like backpropagation neural nets)
-            for iterWithSameDataNum = 1:flags.num_iter_with_same_data
+            for iterWithSameDataNum = 1:expt.num_iter_with_same_data
                 currNumTotalIters=currNumTotalIters+1; % increment results iteration counter
-                if flags.scramble ==1
+                if expt.scramble ==1
                     subj = JR_scramble_regressors(subj,'conds','runs','conditions_of_interest_bal_within_runs','conds_scrambled');
                     [subj results] = cross_validation(subj,'epi_d_hp_z_condensed','conds_scrambled','runs_xval_bal',classifier_mask,classArgs,'perfmet_functs', expt.perfmetFuncts);
                 else %run the normal classifier without scrambling
                     [subj results] = cross_validation(subj,'epi_d_hp_z_condensed','conds','runs_xval_bal',classifier_mask,classArgs,'perfmet_functs', expt.perfmetFuncts);
                 end
 
-                if flags.generate_importance_maps == 1
+                if expt.generate_importance_maps == 1
                     for rif = 1:length(results.iterations);
                         thisScratch = results.iterations(rif).scratchpad.w(2:end,:)';
                         results_IW{rif}.iterations(1).scratchpad.net.IW{1} = thisScratch;
@@ -233,8 +250,8 @@ for subNum=subj_array
     end
     
     
-    if flags.generate_importance_maps == 1;
-        generateImportanceMaps(classArgs, subjId, lbl.impMapDirStr, expt, subj, results, num_testing_sets, flags, nRuns);
+    if expt.generate_importance_maps == 1;
+        generateImportanceMaps(classArgs, subjId, lbl.impMapDirStr, expt, subj, results, num_testing_sets,  nRuns);
     end
     
     %record time running
@@ -246,7 +263,7 @@ end
 end
  
 %% allows user to make changes from the parameters specified in CM_mvpa_params without having to change everything every time
-function expt= acceptUserInput(expt, args)
+function expt = acceptUserInput(expt,  args)
     p = inputParser;
     p.addParamValue('roiName', expt.roiName, @(x) ischar(x));
     p.addParamValue('trWeights', expt.trWeights, @(x) isnumeric(x));
@@ -254,6 +271,7 @@ function expt= acceptUserInput(expt, args)
     p.addParamValue('condNames', expt.condNames, @(x) iscell(x));
     p.addParamValue('trnSubCondsToBal', expt.trnSubCondsToBal, @(x) iscell(x) || ischar(x));
     p.addParamValue('tstSubCondsToBal', expt.tstSubCondsToBal, @(x) iscell(x) || ischar(x));
+    p.addParamValue('num_results_iter',expt.num_results_iter, @(x) isnumeric(x));
     p.parse(args{:});
     res = p.Results;
     expt = mergestructs(res, expt);
@@ -271,7 +289,7 @@ end
 
 %% Helper function to output importance maps
 
-function [impmap subj] = generateImportanceMaps(class_args, subjId, importance_maps_dir, expt, subj, results, num_testing_sets, flags, numRuns)
+function [impmap subj] = generateImportanceMaps(class_args, subjId, importance_maps_dir, expt, subj, results, num_testing_sets, numRuns)
 weights = []
 impmap = cell(length(expt.condNames),1);
 impmap_avg = impmap;
@@ -296,7 +314,7 @@ load([expt.dir '/vol_info.mat']); %get functional data resolution info for spm .
 % vol_info = spm_vol('name_of_image_file_with_same_dimensions_as_data_being_used_by_the_classifier.img'; save vol_info.mat vol_info
 for condNum=1:length(expt.condNames)
     impmap{condNum} = zeros(vol_info.dim); %initialize appropriately sized matrix for importance map i
-    if flags.anova_p_thresh == 1 % NO ANOVA VERSION
+    if expt.anova_p_thresh == 1 % NO ANOVA VERSION
         voxel_inds = find(subj.masks{end}.mat); %get mask voxel indices
         for testSetNum = 1:num_testing_sets
             temp{condNum} = zeros(vol_info.dim); %initialize appropriately sized matrix
@@ -321,7 +339,7 @@ for condNum=1:length(expt.condNames)
         voxels_to_exclude = find(composite_mask<=5);  % exclude voxels that exist for fewer than 5 of the ANOVA masks
         impmap{condNum}(voxels_to_exclude)=0;
         impmap_avg{condNum} = impmap{condNum}./composite_mask * 1000;  % divide by number of observations contributing to each sum (to get avg) and multiply by 1000 for scaling
-        vol_info.fname = [importance_maps_dir '/' subjId '_' expt.condNames{condNum} '_p' num2str(flags.anova_p_thresh) '.img'];
+        vol_info.fname = [importance_maps_dir '/' subjId '_' expt.condNames{condNum} '_p' num2str(expt.anova_p_thresh) '.img'];
         impmap{condNum} = impmap_avg{condNum};
     end
     spm_write_vol(vol_info,impmap{condNum});

@@ -7,7 +7,7 @@ function CM_MakeRegs_MVPA(par, saveit)
 %regressors(default is 1)
 %
 
-analysis = 'mvpa2';
+analysis = 'mvpa';
 
 if nargin<3
     saveit=1;
