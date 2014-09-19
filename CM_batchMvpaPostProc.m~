@@ -1,0 +1,20 @@
+function [resB cvB] = CM_batchMvpaPostProc(dir, classStr, xvalIterToReport, task) %trialData compiles the data from the scans
+figoutdir = fulldir(dir,'figs') ;
+
+if isempty(classStr)
+    dFN = dir(fullfile(dir, '*conds*.mat'));
+else
+    dFN = dir(fullfile(dir, sprintf('*%s*.mat', classStr)));
+end
+fileNames = {dFN.name};
+dotFiles = cell2mat(cellfun(@(x) x(1)=='.', fileNames, 'UniformOutput', false));
+fileNames(find(dotFiles)) = []; %remove hidden files that are prepended with dots.
+
+for i =1:length(fileNames)
+    figureprep;
+    load(fileNames{i});
+    [resB{i} cvB{i}] = CM_mvpaPostProc(res, xvalIterToReport, task);
+    resB{i}.name = fileNames{i};
+    cvB{i}.name = fileNames{i};
+end
+    
