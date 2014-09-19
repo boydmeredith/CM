@@ -3,16 +3,15 @@
 #$ -m beas
 #$ -N cm_job
 
-for cNames in "{'old','new'}" "{'hit', 'fa'}" "{'s_old',s_new'}" "{'hit', 'cr'}" "{'fa','miss'}" "{'cr', 'fa'}" "{'cr', 'miss'}" "{'hit', 'miss'}" "{'hit','miss','fa','cr'}"
+for trWs in "[0 0 .33 .34 .33 0]" "[1 0 0 0 0 0 ]" "[0 1 0 0 0 0]" "[0 0 1 0 0 0]"  "[0 0 0 1 0 0]"  "[0 0 0 0 1 0]" "[0 0 0 0 0 1]" 
 do
-
-for trWs in "[0 0 .33 .34 .33 0]" #"[1 0 0 0 0 0]" "[0 1 0 0 0 0]" "[0 0 1 0 0 0]"  "[0 0 0 1 0 0]"  "[0 0 0 0 1 0]" "[0 0 0 0 0 1]" 
-do
-
-for which_trte in "[1 2 3 4 5 6 7 8]" #"[1 2 3 4 0 0 0 0]" "[0 0 0 0 1 2 3 4]" "[1 2 3 4 1 2 3 4]" "[1 1 2 2 3 3 4 4]" "[1 2 1 2 3 4 3 4]" "[1 1 1 1 2 2 2 2]"
-do
-
  
+
+for which_trte in  "[1 2 3 4 0 0 0 0]" "[0 0 0 0 1 2 3 4]" "[1 1 1 2 2 2 2 2]"
+do
+
+for cNames in "{'hit', 'cr'}" "{'s_old','s_new'}" "{'hit', 'fa'}" "{'cr', 'miss'}" "{'old',new'}" "{'fa','miss'}" "{'cr', 'fa'}" "{'hit', 'miss'}" "{'hit','miss','fa','cr'}"
+do
 
 qsub -l h_vmem=10G -v -cwd cm_job.bash "[],'','trWeights',${trWs},'condNames',${cNames},'which_traintest',${which_trte}" 
 

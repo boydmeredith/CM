@@ -87,6 +87,9 @@ for subNum=subj_array
     clear data_by_TR;
 
     %% look for outliers 
+
+
+
     if expt.remove_artdetect_outliers == 1
         % Exclude trials determined to be outliers by custom ArtDetect script
         % Guide to outlier file cell arrays... Movement thresholds: .2 .25 .3
