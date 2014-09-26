@@ -1,4 +1,4 @@
-function [expt, classArgs, S, idxTr, idxTe, par]= CM_mvpa_params(subj_id, task)
+function [expt, classArgs, S, par]= CM_mvpa_params(subj_id, task)
 
 % establish parameters for mvpa analysis
 % <subj_id> - identifier for the given subject. Can be numerical or a
@@ -82,12 +82,14 @@ expt.perfmetFuncts = 'perfmet_maxclass';
 expt.group_mvpa_dir = [expt.dir '/mvpa_results'];
 expt.which_traintest = [1 2 3 4 0 0 0 0];
 expt.condNames = {'hit', 'cr'};
+expt.subjFname = fullfile(expt.dir, subj_id, expt.mvpaDirStr,[subj_id '_' expt.roiName '.mat']); %having this previously saved avoids time-consuming data extraction and preproc
+
 
 
 
 %% establish general parameters
-idxTr = [];
-idxTe = [];
+S.idxTr = [];
+S.idxTe = [];
 par = CM_Params(subj_id, task);
 S.exp_name = 'CM';
 
@@ -127,7 +129,7 @@ end
 % S.TrainRuns = runs of data on which to train
 % S.durTrain = duration of training
 % S.filenames_train = names of data images to use for training
-% idxTr = behavioral information for training task
+% S.idxTr = behavioral information for training task
     
 if strcmp(S.trainTask,'exLeftRight')
     parTr = CM_Params(subj_id, 'ex');
@@ -138,7 +140,7 @@ if strcmp(S.trainTask,'exLeftRight')
     S.durTrain = sum(par.(par.task).numvols(S.TrainRuns)) * par.TR;
     S.filenames_train = vertcat(par.swascanfilesByRun.(par.task){S.TrainRuns});
 % %     %S.filenames_train = vertcat(par.betasByRun{S.TrainRuns});
-    [~, ~,idxTr] = CM_fMRIBehAnalysis(par, 'ex');
+    [~, ~,S.idxTr] = CM_fMRIBehAnalysis(par, 'ex');
 elseif strcmp(S.trainTask,'exLeftHand')
     parTr = CM_Params(subj_id, 'ex');
     S.onsetsTrainDir = [S.mvpa_dir];
@@ -148,7 +150,7 @@ elseif strcmp(S.trainTask,'exLeftHand')
     S.durTrain = sum(par.(par.task).numvols(S.TrainRuns)) * par.TR;
     S.filenames_train = vertcat(par.swascanfilesByRun.(par.task){S.TrainRuns});
 % %     %S.filenames_train = vertcat(par.betasByRun{S.TrainRuns});
-    [~, ~,idxTr] = CM_fMRIBehAnalysis(par, 'ex');
+    [~, ~,S.idxTr] = CM_fMRIBehAnalysis(par, 'ex');
 end
 %% testing
 if strcmp(S.testTask,'cmLeftRight')
@@ -158,7 +160,7 @@ if strcmp(S.testTask,'cmLeftRight')
     S.durTest = sum(par.(par.task).numvols(S.TestRuns)) * par.TR;
     S.filenames_test = vertcat(par.swascanfilesByRun.(par.task){S.TrainRuns});
 % %     S.filenames_test = vertcat(par.betasByRun{S.TestRuns});
-    [~, ~,idxTe] = CM_fMRIBehAnalysis(par, 'cm');
+    [~, ~,S.idxTe] = CM_fMRIBehAnalysis(par, 'cm');
 elseif strcmp(S.testTask,'cmLeftHand')
     S.onsetsTestDir = [S.mvpa_dir];
     S.condsTest = {{'cmLeftIndex'}  {'cmLeftMiddle'}} ;
@@ -166,7 +168,7 @@ elseif strcmp(S.testTask,'cmLeftHand')
     S.durTest = sum(par.(par.task).numvols(S.TestRuns)) * par.TR;
     S.filenames_test = vertcat(par.swascanfilesByRun.(par.task){S.TrainRuns});
 % %     S.filenames_test = vertcat(par.betasByRun{S.TestRuns});
-    [~, ~,idxTe] = CM_fMRIBehAnalysis(par, 'cm');
+    [~, ~,S.idxTe] = CM_fMRIBehAnalysis(par, 'cm');
 elseif strcmp(S.testTask,'exLeftHand')
     S.onsetsTestDir = [S.mvpa_dir];
     S.condsTest = {{'exLeftIndex'}  {'exLeftMiddle'}} ;
@@ -174,7 +176,7 @@ elseif strcmp(S.testTask,'exLeftHand')
     S.durTest = sum(par.(par.task).numvols(S.TestRuns)) * par.TR;
     S.filenames_test = vertcat(par.swascanfilesByRun.(par.task){S.TrainRuns});
 % %     S.filenames_test = vertcat(par.betasByRun{S.TestRuns});
-    [~, ~,idxTe] = CM_fMRIBehAnalysis(par, 'ex');
+    [~, ~,S.idxTe] = CM_fMRIBehAnalysis(par, 'ex');
 
 end
 
@@ -253,7 +255,7 @@ S.secondaryMask = []; % secondary mask (the specific classification mask)
 
 %% Workspace Parameters
 S.use_premade_workspace = 1;
-S.workspace = fullfile(S.workspace_dir, [S.subj_id '_' S.roi_name '_' S.smoothTxt{S.funcType} '_train_' S.trainTask '_test_' S.testTask S.preprocType '.mat']);
+%S.workspace = fullfile(S.workspace_dir, [S.subj_id '_' S.roi_name '_' S.smoothTxt{S.funcType} '_train_' S.trainTask '_test_' S.testTask S.preprocType '.mat']);
 
 
 

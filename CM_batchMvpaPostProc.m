@@ -1,4 +1,4 @@
-function [resB cvB] = batchMvpaPostProc(resDir, classStr, xvalIterToReport, task) 
+function [resB cvB] = batchMvpaPostProc(resDir, classStr, xvalIterToReport, task, subjArray) 
 %function [resB cvB] = batchMvpaPostProc(dir, classStr, xvalIterToReport, task) 
 %inputs:
 %<resDir> the directory containing the results mat files
@@ -22,7 +22,11 @@ fileNames(find(dotFiles)) = []; %remove hidden files that are prepended with dot
 
 for i =1:length(fileNames)
     load(fileNames{i});
-    [resB{i} cvB{i}] = CM_mvpaPostProc(res, xvalIterToReport, task, fullfile(resDir,'figs'));
+    if length(res.subjArray) > length(res.subj)
+        display(['skipping over ' res.subj{1}.penalty.nVox.weights.expt{1}.saveName ' b/c the results struct is shorter than the subject array...\n']);
+        continue
+    end
+    [resB{i} cvB{i}] = CM_mvpaPostProc(res, xvalIterToReport, task, fullfile(resDir,'figs'), subjArray);
     resB{i}.name = fileNames{i};
     cvB{i}.name = fileNames{i};
 end
