@@ -233,7 +233,10 @@ clear concatAllSubs.regressors
 if strcmp(trte,'EXCM')
     subj.selectors{1}.mat = ismember(concatAllSubs.condensed_runs, 5:8)+1;
     subj.selectors{1}.matsize = size(concatAllSubs.condensed_runs);
-
+elseif strcmp(trte,'minus',5)
+    s_to_exclude = str2num(trte(6:7));
+    subj.selectors{1}.mat = ones(size(concatAllSubs.subjID));
+    subj.selectors{1}.mat(subj.selectors{1}.mat==
 else
     subj.selectors{1}.mat = concatAllSubs.subjID;
 end
@@ -271,6 +274,8 @@ end
 subj.patterns{end}.mat = single(subj.patterns{end}.mat);  % make pattern a 'single' matrix to save ram and speed up classification (Note: doesn't work with backprop, though)
 
 [subj results{1}] = cross_validation(subj,'epi_d_hp_z_condensed','conds','runs_xval',classifier_mask,class_args);
+
+save (fullfile(expt.group_mvpa_dir, expt.saveName), 'results');
 
 end
 
