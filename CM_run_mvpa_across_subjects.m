@@ -42,6 +42,7 @@ for subIdx=1:length(subj_array)
     onsetsFile = fullfile(thisMvpaDir, expt.onsetsFname);
     expt.scanfiles = vertcat(par.swascanfiles.(par.task));
     nScanFiles = length(expt.scanfiles);
+    nRuns = nScanFiles/expt.numTpPerRun; %calculate the number of runs (allows script to work flexibly for subjects with missing runs)
     % dataImgsFile = fullfile(thisMvpaDir, expt.dataImgsToUse);
     %load(dataImgsFile); %loads predefined cell array called expt.scanfiles into memory
     load(onsetsFile); % load in your SPM-formatted onsets file (specifies onsets of each event time in seconds)
@@ -57,7 +58,6 @@ for subIdx=1:length(subj_array)
     
     expt.condCols = makeCondCols(expt, names);
     
-    nRuns = nScanFiles/expt.numTpPerRun; %calculate the number of runs (allows script to work flexibly for subjects with missing runs)
     % Extract info about conditions from onsets file (uses SPM-based coding
     % of the onsets (in seconds) of trials in each condition of interest)
     num_conds = size(onsets,2);
@@ -236,7 +236,7 @@ if strcmp(trte,'EXCM')
 elseif strcmp(trte,'minus',5)
     s_to_exclude = str2num(trte(6:7));
     subj.selectors{1}.mat = ones(size(concatAllSubs.subjID));
-    subj.selectors{1}.mat(subj.selectors{1}.mat==
+    subj.selectors{1}.mat(subj.selectors{1}.mat==s_to_exclude) = 2;
 else
     subj.selectors{1}.mat = concatAllSubs.subjID;
 end
@@ -273,8 +273,10 @@ end
 
 subj.patterns{end}.mat = single(subj.patterns{end}.mat);  % make pattern a 'single' matrix to save ram and speed up classification (Note: doesn't work with backprop, though)
 
+%run cross-validated classification
 [subj results{1}] = cross_validation(subj,'epi_d_hp_z_condensed','conds','runs_xval',classifier_mask,class_args);
 
+%save results
 save (fullfile(expt.group_mvpa_dir, expt.saveName), 'results');
 
 end
