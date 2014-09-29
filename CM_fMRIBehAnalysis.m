@@ -41,6 +41,8 @@ for i =1:4
     trialData(i) = trialDataOld(4+i);
     trialData(4+i) = trialDataOld(i);
 end
+
+%fix some subject-specific idiosyncracies in logfiles
 switch par.subNo
     case 1
         for i = 1:2:8
@@ -48,11 +50,18 @@ switch par.subNo
             trialData(i+1).SubHand='R';
         end
     case 3
+        %no index finger came through for run 1. grabbing from CM001_onsets_vector_test.xls
+        trialData(1).resp = {'4$'	'3#'	'4$'	'4$'	'3#'	'4$'	'3#'	'3#'	'3#'	'4$'	'3#'	'3#'	'3#'	'4$'	'3#'	'3#'	'3#'	'4$'	'4$'	'4$'	'4$'	'4$'	'4$'	'3#'	'4$'	'3#'	'4$'	'3#'	'3#'	'3#'	'4$'	'4$'	'4$'	'3#'	'4$'	'3#'	'4$'	'4$'	'3#'	'3#'	'4$'	'4$'	'3#'	'4$'	'4$'	'3#'	'3#'	'3#'	'4$'	'3#'};     
+        %something also wrong with run 2
         tmp = [8 8 9 9 9 8 9 8 8 9 8 8 9 8 8 8 9 8 8 8 8 9 9 8 8 8 8 9 8 9 9 9 9 9 9 8 8 8 9 9 8 9 8 8 8 8 8 8 8 9 ] ;
         trialData(2).resp = cell(size(tmp));
         trialData(2).resp(tmp==8) = {'8*'};
         trialData(2).resp(tmp==9) = {'9('};
+    case 9
+        %no data for run 1. grabbing from CM009_onsets_vector_test.xls
+        trialData(1).resp = {'3#'	'4$'	'3#'	'3#'	'4$'	'4$'	'4$'	'3#'	'3#'	'4$'	'4$'	'4$'	'3#'	'4$'	'3#'	'4$'	'4$'	'3#'	'4$'	'4$'	'4$'	'3#'	'4$'	'4$'	'3#'	'4$'	'4$'	'4$'	'3#'	'3#'	'3#'	'4$'	'3#'	'3#'	'4$'	'4$'	'3#'	'4$'	'3#'	'4$'	'3#'	'4$'	'4$'	'3#'	'4$'	'4$'	'3#'	'3#'	'3#'	'4$'};
     case 17
+        %for some reason run 8 has subtask == 1, which means nothing
         trialData(8).SubTask = 3;
 end
 
@@ -83,9 +92,14 @@ idx.time0 = cat(2,trialData.onset)';
 idx.hand = cat(2,trialData.hand)';
 
 idx.indexFinger = ismember(resp,{'4$', '9('})';
-idx.middleFinger = ismember(resp,{'3#','8*'})'; 
-idx.leftHand = (idx.hand == 'L');
-idx.rightHand = (idx.hand == 'R');
+idx.middleFinger = ismember(resp,{'3#','8*'})';
+
+idx.leftHand = ismember(resp,{'4$','3#'})';
+idx.rightHand = ismember(resp,{'9(','8*'})';
+
+idx.wrongHand = (idx.leftHand .* idx.hand == 'R') + (idx.rightHand .* idx.hand == 'L');
+validTestTrials = validTestTrials .* ~idx.wrongHand;
+
 idx.leftIndex = idx.indexFinger .* idx.leftHand;
 idx.leftMiddle = idx.middleFinger .* idx.leftHand;
 idx.rightIndex = idx.indexFinger .* idx.rightHand;
@@ -135,7 +149,7 @@ idx.cmMiss = idx.cm .* idx.miss;
 idx.junk = ~(validTestTrials);
 
 idx.allTrialOns = idx.time0;
-% idx.allTrialOns = idx.time0 + ((idx.runNum-1) .* par.cam.numvols(idx.runNum)' * par.TR);
+% idx.allTrialOns = idx.time0 + ((idx.runNum-1) .* par.cam.numvols(idx.runNum)'* par.TR);
 
 %% results sections
 % res.pRespOld = sum(idx.respRFK)/sum(validTestTrials);
