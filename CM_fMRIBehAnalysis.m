@@ -109,6 +109,9 @@ oldNew = cat(1,trialData.cond);
 idx.old = strcmp(oldNew , 'OLD');
 idx.new = strcmp(oldNew , 'NEW');
 
+idx.aa = strcmp(cat(1,trialData.group),'AA');
+idx.ea = strcmp(cat(1,trialData.group),'EA');
+
 idx.task = cat(2,trialData.task)';
 idx.ex = (idx.task == 2);
 idx.cm = (idx.task == 3);
@@ -121,7 +124,14 @@ idx.fa = idx.s_old .* idx.new;
 idx.miss = idx.s_new .* idx.old;
 idx.cr = idx.s_new .* idx.new;
 
-
+idx.aaHit = idx.hit .* idx.aa;
+idx.eaHit = idx.hit .* idx.ea;
+idx.aaCr = idx.cr .* idx.aa;
+idx.eaCr = idx.cr .* idx.ea;
+idx.aaFa = idx.fa .* idx.aa;
+idx.eaFa = idx.fa .* idx.ea;
+idx.aaMiss = idx.miss .* idx.aa;
+idx.eaMiss = idx.miss .* idx.ea;
 
 idx.exLeftHand = idx.leftHand .* idx.ex;
 idx.cmLeftHand = idx.leftHand .* idx.cm;
