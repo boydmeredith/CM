@@ -5,67 +5,64 @@ function [results]= CM_run_mvpa_across_subjects(subj_array, trte, varargin)
 %varargin - parameters for classification will be automatically determined by CM_mvpa_params if not otherwise specified. Parameters that can be set include: 'condNames', 'which_traintest', 'trWeights', 'roiName', and others
 %outputs:
 %res - a structure that keeps track of the parameters used for classification as well as the results of each iteration of classifcation
+
+%determine which classifier to use
 class_args.train_funct_name = 'train_pLR';
 class_args.test_funct_name = 'test_pLR';
 class_args.penalty = 10000;
     
-
 %set default subj_array
 if isempty(subj_array)
     subj_array=[1,3:10,12:26];
 end
 
-%init concatenated subjects variable
+%initialize concatenated subjects variable
 concatAllSubs.pattern = [];
 concatAllSubs.regressors = [];
 concatAllSubs.actives = [];
-concatAllSubs.subjID = [];
+concatAllSubs.subjIdx = [];
 concatAllSubs.condensed_runs = [];
 
 % for each subject, set up struct and put into voxel ind
 for subIdx=1:length(subj_array)
     tic;
-    
-    subNum = subj_array(subIdx);
-    
-    [expt classArgs S par] = CM_mvpa_params(subNum, 'ret');
-    
-    expt = acceptUserInput(expt, varargin);
-    
+    subnum = subj_array(subIdx);
+    %get expt structure, to determine classification scheme
+    [expt classargs s par] = CM_mvpa_params(subnum, 'ret');
+    %incorporate user specified variables into default expt structure
+    expt = accept_user_input(expt, varargin);
+    %handle naming relevant files
     nickname = make_savename(expt);
     expt.saveName = [expt.saveName nickname];
-    expt.impMapDirStr=[expt.dir '/mvpa_results/within_subj_class/importance_maps/' expt.saveName];
-    expt.roiFname = [expt.dir '/Masks/' expt.roiName];
-
-    subjId = sprintf(expt.subjIdFormat,subNum);
-    thisMvpaDir = fullfile(expt.dir, subjId, expt.mvpaDirStr); % mvpa directory within each subject's folder (will be created below if it doesn't exist)
-    onsetsFile = fullfile(thisMvpaDir, expt.onsetsFname);
+    expt.impmapdirstr=[expt.dir '/mvpa_results/within_subj_class/importance_maps/' expt.saveName];
+    expt.roifname = [expt.dir '/masks/' expt.roiName];
+    subjid = sprintf(expt.subjIdFormat,subnum);
+    thismvpadir = fullfile(expt.dir, subjid, expt.mvpaDirStr);
+    onsetsfile = fullfile(thismvpadir, expt.onsetsFname);
     expt.scanfiles = vertcat(par.swascanfiles.(par.task));
-    nScanFiles = length(expt.scanfiles);
-    nRuns = nScanFiles/expt.numTpPerRun; %calculate the number of runs (allows script to work flexibly for subjects with missing runs)
-    % dataImgsFile = fullfile(thisMvpaDir, expt.dataImgsToUse);
-    %load(dataImgsFile); %loads predefined cell array called expt.scanfiles into memory
-    load(onsetsFile); % load in your SPM-formatted onsets file (specifies onsets of each event time in seconds)
+    nscanfiles = length(expt.scanfiles);
+    nruns = nscanfiles/expt.numTpPerRun;     
+    % dataimgsfile = fullfile(thismvpadir, expt.dataimgstouse);
+    %load(dataimgsfile); %loads predefined cell array called expt.scanfiles into memory
+    load(onsetsfile); % load in your spm-formatted onsets file (specifies onsets of each event time in seconds)
     
     %if subj structure hasn't been created and saved, do data proc routine (load pattern, detrend, high-pass, filter, z-score)
-    expt.subjFname = [thisMvpaDir '/' subjId '_' expt.roiName '_s8mm_wa.mat']; %having this previously saved avoids time-consuming data extraction and preproc
+    expt.subjFname = [thismvpadir '/' subjid '_' expt.roiName '_s8mm_wa.mat']; %having this previously saved avoids time-consuming data extraction and preproc
     if ~exist(expt.subjFname,'file'), 
-        subj = CM_mvpa_load_and_preprocess_raw_data(subjId, expt, nRuns, 1)
+        subj = CM_mvpa_load_and_preprocess_raw_data(subjid, expt, nruns, 1)
     else
         load(expt.subjFname)
     end
-    
-    
-    expt.condCols = makeCondCols(expt, names);
-    
-    % Extract info about conditions from onsets file (uses SPM-based coding
+       
+    expt.condCols = make_cond_cols(expt, names);
+    % extract info about conditions from onsets file (uses spm-based coding
     % of the onsets (in seconds) of trials in each condition of interest)
     num_conds = size(onsets,2);
-    all_regs = zeros(num_conds,nRuns*expt.numTpPerRun); % initialize regs matrix as conditions x timepoints
+    all_regs = zeros(num_conds,nruns*expt.numTpPerRun); % initialize regs matrix as conditions x timepoints
     
     for cond = 1: num_conds %(exclude last condition ("no_response" trials)
         for trial = 1: length(onsets{cond})
-            time_idx = round(onsets{cond}(trial)/2)+1; % divide by 2 and add 1 to convert back from sec to TRs (first timepoint = 0 sec; first TR = 1)
+            time_idx = round(onsets{cond}(trial)/2)+1; % divide by 2 and add 1 to convert back from sec to trs (first timepoint = 0 sec; first tr = 1)
             all_regs(cond,time_idx) = 1;
         end
     end
@@ -211,7 +208,7 @@ for subIdx=1:length(subj_array)
     end
     
     
-    concatAllSubs.subjID = horzcat(concatAllSubs.subjID, repmat(subIdx,1,length(active_trials)));
+    concatAllSubs.subjIdx = horzcat(concatAllSubs.subjIdx, repmat(subIdx,1,length(active_trials)));
     concatAllSubs.regressors = horzcat(concatAllSubs.regressors, subj.regressors{1}.mat(:,find(subj.selectors{2}.mat)));  %get regressors only for active trials
     %concatAllSubs.actives = horzcat(concatAllSubs.actives, subj.selectors{2}.mat);
     concatAllSubs.condensed_runs = horzcat(concatAllSubs.condensed_runs, condensed_runs(:,find(subj.selectors{2}.mat)));
@@ -231,20 +228,33 @@ subj.regressors{1}.matsize = size(concatAllSubs.regressors);
 clear concatAllSubs.regressors
 
 if strcmp(trte,'EXCM')
+    expt.saveName = ['trEXteCM_' expt.saveName];
     subj.selectors{1}.mat = ismember(concatAllSubs.condensed_runs, 5:8)+1;
     subj.selectors{1}.matsize = size(concatAllSubs.condensed_runs);
-elseif strcmp(trte,'minus',5)
-    s_to_exclude = str2num(trte(6:7));
-    subj.selectors{1}.mat = ones(size(concatAllSubs.subjID));
-    subj.selectors{1}.mat(subj.selectors{1}.mat==s_to_exclude) = 2;
+elseif strfind(trte,'minus')
+    str_ix = strfind(trte,'minus')+length('minus');	
+    s_to_exclude = str2num(trte(str_ix:str_ix+1));
+    s_to_exclude_ix = find(subj_array==s_to_exclude); %convert to index
+    subj.selectors{1}.mat = ones(size(concatAllSubs.subjIdx));
+    subj.selectors{1}.mat(concatAllSubs.subjIdx==s_to_exclude_ix) = 2;		
+    if strncmp(trte,'minus',5)
+    	expt.saveName = ['trAllteAll_' expt.saveName];
+    elseif strncmp(trte, 'EXminus',7)
+    	expt.saveName = ['trEXteAll_' expt.saveName];
+    	subj.selectors{1}.mat(ismember(concatAllSubs.condensed_runs, 5:8) & concatAllSubs.subjIdx ~= s_to_exclude_ix)=0;
+    elseif strncmp(trte, 'CMminus',7)
+    	expt.saveName = ['trCMteAll_' expt.saveName];
+    	subj.selectors{1}.mat(ismember(concatAllSubs.condensed_runs, 1:4) & concatAllSubs.subjIdx ~= s_to_exclude_ix)=0;
+    end
 else
-    subj.selectors{1}.mat = concatAllSubs.subjID;
+    subj.selectors{1}.mat = concatAllSubs.subjIdx;
 end
 
+imagesc(subj.selectors{1}.mat); 
+hold on; colorbar; title('runs selector');
+
 %subj = remove_mat(subj,'selectors','conditions_of_interest'); % remove original uncondensed pattern (full timeseries)
-subj = create_xvalid_indices(subj,'runs');
-
-
+subj = create_xvalid_indices(subj,'runs', 'ignore_runs_zeros', true);
 
 subj.masks{1}.mat = zeros(subj.masks{1}.matsize);
 subj.masks{1}.mat(common_voxel_inds) = 1;
@@ -276,6 +286,9 @@ subj.patterns{end}.mat = single(subj.patterns{end}.mat);  % make pattern a 'sing
 %run cross-validated classification
 [subj results{1}] = cross_validation(subj,'epi_d_hp_z_condensed','conds','runs_xval',classifier_mask,class_args);
 
+%save condensed runs for identification of ex and cm trials
+results{1}.condensed_runs = concatAllSubs.condensed_runs;
+
 %save results
 save (fullfile(expt.group_mvpa_dir, expt.saveName), 'results');
 
@@ -284,7 +297,7 @@ end
 
 
 %% allows user to make changes from the parameters specified in CM_mvpa_params without having to change everything every time
-function expt = acceptUserInput(expt,  args)
+function expt = accept_user_input(expt,  args)
 p = inputParser;
 p.addParamValue('roiName', expt.roiName, @(x) ischar(x));
 p.addParamValue('trWeights', expt.trWeights, @(x) isnumeric(x));
@@ -300,7 +313,7 @@ end
 
 
 %% sets the indices of the conditions that need to be examined
-function condCols = makeCondCols(expt, names)
+function condCols = make_cond_cols(expt, names)
 condCols = zeros(1,length(expt.condNames));
 for i = 1:length(condCols)
     thisName = expt.condNames{i};
