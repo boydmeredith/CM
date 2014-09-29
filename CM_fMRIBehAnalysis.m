@@ -52,6 +52,8 @@ switch par.subNo
         trialData(2).resp = cell(size(tmp));
         trialData(2).resp(tmp==8) = {'8*'};
         trialData(2).resp(tmp==9) = {'9('};
+    case 17
+        trialData(8).SubTask = 3;
 end
 
 for i = 1:8
