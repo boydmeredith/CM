@@ -1,5 +1,5 @@
 function [res, cv, idx] = CM_mvpaPostProc(qqq, xvalIterToReport, task, plotit, saveDir, subjArray)
-%function [res, dat, groupPsy, datB] = CM_mvpaPostProc(qqq, task)
+%function [res, cv, idx] = CM_mvpaPostProc(qqq, xvalIterToReport, task, plotit, saveDir, subjArray)
 
 auc = [];
 if isempty(subjArray)
@@ -7,7 +7,7 @@ if isempty(subjArray)
 end
 
 for s = subjArray
-    [cv] = CM_singleSubjProc(s, qqq, xvalIterToReport, task);
+    [cv resS] = CM_singleSubjProc(s, qqq, xvalIterToReport, task);
     
     fn = fieldnames(cv.reordered);
     for f = 1:length(fn)
@@ -54,13 +54,13 @@ if plotit
     axis square;
 
     if ~isempty(saveDir)
-        figurewrite(resS{1}.saveName,[],[],[saveDir '/figs'],[]);
+        figurewrite(resS{1}.saveName,[],[],[saveDir],[]);
     end
 end
 end
 
 
-function [cv] = CM_singleSubjProc(s, qqq, xvalIterToReport, task)
+function [cv resS] = CM_singleSubjProc(s, qqq, xvalIterToReport, task)
 % behavioral analysis
 par = CM_Params(s, task, 0);
 [~,~,idxB] = CM_fMRIBehAnalysis(par);
