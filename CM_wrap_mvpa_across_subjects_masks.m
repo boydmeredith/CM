@@ -1,4 +1,4 @@
-function [res] = CM_wrap_mvpa_across_subjects_masks(trte,subj_array)
+function [res] = CM_wrap_mvpa_across_subjects_masks(trte,subj_array,te_subj_array)
 %CM_wrap_mvpa_across_subjects_masks() is intended to run classification
 %across subjects using pre-specified masks
 
@@ -8,7 +8,7 @@ end
 
 assert(ismember(trte,{'EXminus','CMminus','minus'}));
 
-for s = subj_array
+for s = te_subj_array
     	
 	trte_str = sprintf('%s%02d',trte,s);
 	mask_to_use = sprintf('exhitsgrcrs_AND_cmhitsgrcrs_minus%02d.img',s);

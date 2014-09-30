@@ -1,4 +1,4 @@
-function [res, cv, idx] = CM_mvpaPostProc(qqq, xvalIterToReport, task, saveDir, subjArray)
+function [res, cv, idx] = CM_mvpaPostProc(qqq, xvalIterToReport, task, plotit, saveDir, subjArray)
 %function [res, dat, groupPsy, datB] = CM_mvpaPostProc(qqq, task)
 
 auc = [];
@@ -28,7 +28,7 @@ if ~isempty(saveDir)
 	cell2csv(fullfile(saveDir, [resS{1}.saveName '.csv']), toPrint, ',', 2000);
 end
 
-subplot(1,3,1);
+
 res.auc = nan(size(subjArray));
 res.far =  nan(length(subjArray),80);
 res.hr =  nan(length(subjArray),80);
@@ -38,21 +38,24 @@ for s=subjArray
 	
 
 end
-plot(nanmean(res.far),nanmean(res.hr));
-errorbar3(nanmean(res.far),nanmean(res.hr),ste(res.hr),1,[.2 .6 1]);
-title(sprintf('AUC = %.2f',nanmean(res.auc)));
-axis square;
-subplot(1,3,2);
-hist(out.actsVec( out.desiredsVec==1),25);
-title('class A probs for A trials');
-axis square;
-subplot(1,3,3);
-hist(out.actsVec( out.desiredsVec==2),25);
-title('class A probs for B trials');
-axis square;
+if plotit
+    subplot(1,3,1);
+    plot(nanmean(res.far),nanmean(res.hr));
+    errorbar3(nanmean(res.far),nanmean(res.hr),ste(res.hr),1,[.2 .6 1]);
+    title(sprintf('AUC = %.2f',nanmean(res.auc)));
+    axis square;
+    subplot(1,3,2);
+    hist(out.actsVec( out.desiredsVec==1),25);
+    title('class A probs for A trials');
+    axis square;
+    subplot(1,3,3);
+    hist(out.actsVec( out.desiredsVec==2),25);
+    title('class A probs for B trials');
+    axis square;
 
-if ~isempty(saveDir)
-    figurewrite(resS{1}.saveName,[],[],[saveDir '/figs'],[]);
+    if ~isempty(saveDir)
+        figurewrite(resS{1}.saveName,[],[],[saveDir '/figs'],[]);
+    end
 end
 end
 

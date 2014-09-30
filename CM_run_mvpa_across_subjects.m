@@ -15,6 +15,7 @@ class_args.penalty = 10000;
 if isempty(subj_array)
     subj_array=[1,3:10,12:26];
 end
+expt.subj_array = subj_array;
 
 %initialize concatenated subjects variable
 concatAllSubs.pattern = [];
@@ -387,5 +388,7 @@ condNamesStr = strrep(strjoin(expt.condNames),',','V');
 trTeStr = strrep(num2str(expt.which_traintest),'  ','_');
 trWStr = strrep(num2str(expt.trWeights),' ','_');
 savename = sprintf('acrossSubs_conds_%s_trTe%s_trW%s_roi%s',condNamesStr,trTeStr,trWStr,expt.roiName);
+
+
 end
 
