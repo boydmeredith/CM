@@ -1,14 +1,13 @@
 function [res, cv, idx] = CM_mvpaPostProc(qqq, xvalIterToReport, task, saveDir, subjArray)
 %function [res, dat, groupPsy, datB] = CM_mvpaPostProc(qqq, task)
-pnl = 1;
-weights = 1;
+
 auc = [];
 if isempty(subjArray)
     subjArray = qqq.subjArray;
 end
 
 for s = subjArray
-    [cv] = CM_singleSubjProc(s, qqq, xvalIterToReport);
+    [cv] = CM_singleSubjProc(s, qqq, xvalIterToReport, task);
     
     fn = fieldnames(cv.reordered);
     for f = 1:length(fn)
@@ -58,21 +57,18 @@ end
 end
 
 
-function CM_singleSubjProc(s, qqq, xvalIterToReport, task)
+function [cv] = CM_singleSubjProc(s, qqq, xvalIterToReport, task)
 % behavioral analysis
 par = CM_Params(s, task, 0);
 [~,~,idxB] = CM_fMRIBehAnalysis(par);
-resS = qqq.subj{s}.penalty(pnl).nVox.weights(weights).expt;
-if xvalIterToReport > length(qqq.subj{s}.penalty(pnl).nVox.weights(weights).iter{1}.iterations)
-    subjArray(subjArray==s)=[], continue
-end
-for resit = 1:length(qqq.subj{s}.penalty(pnl).nVox.weights(weights).iter)
+resS = qqq.subj{s}.penalty.nVox.weights.expt;
+for resit = 1:length(qqq.subj{s}.penalty.nVox.weights.iter)
     % read in classification data
     s, resit
     if xvalIterToReport
-        resStruct = qqq.subj{s}.penalty(pnl).nVox.weights(weights).iter{resit}.iterations(xvalIterToReport);
+        resStruct = qqq.subj{s}.penalty.nVox.weights.iter{resit}.iterations(xvalIterToReport);
     else
-        resStruct = qqq.subj{s}.penalty(pnl).nVox.weights(weights).iter{resit}.iterations;
+        resStruct = qqq.subj{s}.penalty.nVox.weights.iter{resit}.iterations;
     end
     
     %allOns = sort([resS.onsets_test_in_classifier{:}]);
@@ -84,7 +80,7 @@ for resit = 1:length(qqq.subj{s}.penalty(pnl).nVox.weights(weights).iter)
     
     %global signal stuff
     %globalSignalDat = load('/biac4/wagner/biac3/wagner5/alan/perceptMnemonic/fmri_data/mvpa_files/pre2013/MeanSigIntensityInOTCortex');
-    %globalSig = globalSignalDat.res.subj{s}.penalty.nVox.weights(weights).iter{1}.iterations.acts(1,:);
+    %globalSig = globalSignalDat.res.subj{s}.penalty.nVox.weights.iter{1}.iterations.acts(1,:);
     
     %% extract raw data from the resStruct
     for i = 1:length(resStruct)
