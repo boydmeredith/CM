@@ -75,11 +75,11 @@ for resit = 1:length(qqq.subj{s}.penalty.nVox.weights.iter)
     end
     
     %allOns = sort([resS.onsets_test_in_classifier{:}]);
-    testOns = zeros(size(idxB.allTrialOns));
-    for i = 1:length(resS{1}.condNames)
-        testOns = testOns+idxB.(resS{1}.condNames{i});
-    end
-    inClassifier = find(testOns);
+%     testOns = zeros(size(idxB.allTrialOns));
+%     for i = 1:length(resS{1}.condNames)
+%         testOns = testOns+idxB.(resS{1}.condNames{i});
+%     end
+%     inClassifier = find(testOns);
     
     %global signal stuff
     %globalSignalDat = load('/biac4/wagner/biac3/wagner5/alan/perceptMnemonic/fmri_data/mvpa_files/pre2013/MeanSigIntensityInOTCortex');

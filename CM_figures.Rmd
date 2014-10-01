@@ -1,0 +1,51 @@
+---
+title: "CM mvpa analysis"
+output: html_document
+---
+
+
+```{r load data and categorize}
+require(gridExtra)
+library(ggplot2)
+
+df = read.csv("/Volumes/Tyler_Drive1/CM_mvpa_results//aucSummary_first_try_hitVcr.csv", header = T)
+head(df)
+
+#add tr info
+df$tr[grepl("trW1__0__0__0__0__0",df$name)]=1
+df$tr[grepl("trW0__1__0__0__0__0",df$name)]=2
+df$tr[grepl("trW0__0__1__0__0__0",df$name)]=3
+df$tr[grepl("trW0__0__0__1__0__0",df$name)]=4
+df$tr[grepl("trW0__0__0__0__1__0",df$name)]=5
+df$tr[grepl("trW0__0__0__0__0__1",df$name)]=6
+
+#add mask info
+df$mask[grepl("roiSEPT09_MVPA_MASK_resliced4mm",df$name)]="standard mvpa mask"
+
+#add conditions info
+df$conds[grepl("conds_hitVcr_",df$name)]="hit v cr"
+
+#add train test info
+df$trte[grepl("trTe0_0_0_0_1_2_3_4_",df$name)]="CM only 4-fold"
+df$trte[grepl("trTe1_2_3_4_0_0_0_0_",df$name)]="EX only 4-fold"
+
+summary(df)
+
+
+```
+
+```{r plot data, fig.width = 500, fig.height = 500 }
+
+
+h<-ggplot(df, aes(x=tr, fill=df$trte)) + geom_line(aes(y=.5))
+h <- h + geom_ribbon(aes(ymin=mean_auc-sem_auc, ymax=mean_auc+sem_auc)) + geom_line(aes(y=mean_auc))
+h <- h + labs(y="AUC", x="TR", title="Classifier Performance By TR") + theme_bw() + theme(legend.position="none") + ylim(.25, 1)
+
+#label data
+h <- h + geom_text(data = data.frame(), aes(1.25, .55, label = "CM>CM")) 
+h <- h + geom_text(data = data.frame(), aes(1.25, .525, label = "EX>EX")) + scale_x_continuous(breaks=c(1:6))
+h + geom_text(data = data.frame(), aes(3.5,.485,label="chance"))
+
+
+
+```
