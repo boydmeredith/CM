@@ -85,10 +85,7 @@ for subNum=subj_array
     end
     temporally_condensed_data = squeeze(sum(data_by_TR(expt.trsToAverageOver,:,:),1));
     clear data_by_TR;
-    
-    %% look for outliers
-    
-    
+
     
     if expt.remove_artdetect_outliers
         % Exclude trials determined to be outliers by custom ArtDetect script

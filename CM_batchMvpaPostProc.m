@@ -1,5 +1,5 @@
 function [resB cvB out] = CM_batchMvpaPostProc(resDir, classStr, xvalIterToReport, task, subjArray, saveName, plotit, restrictAcrossSubToTheseRuns) 
-%function [resB cvB] = batchMvpaPostProc(dir, classStr, xvalIterToReport, task) 
+%function [resB cvB out] = CM_batchMvpaPostProc(resDir, classStr, xvalIterToReport, task, subjArray, saveName, plotit, restrictAcrossSubToTheseRuns) 
 %inputs:
 %<resDir> the directory containing the results mat files
 %<classSt>: default value is '*conds*". Filters mat files
@@ -21,8 +21,7 @@ if isempty(task)
 	task = 'ret';
 end
 
-dFN = dir(fullfile(resDir, [classStr]));
-
+dFN = dir(fullfile(resDir, [classStr '.mat']));
 fileNames = {dFN.name};
 dotFiles = cell2mat(cellfun(@(x) x(1)=='.', fileNames, 'UniformOutput', false));
 fileNames(find(dotFiles)) = []; %remove hidden files that are prepended with dots.
