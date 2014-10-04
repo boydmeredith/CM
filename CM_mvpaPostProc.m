@@ -7,8 +7,9 @@ if isempty(subjArray)
 end
 
 saveTag = sprintf('xvals%s_runsrpotred%s_',strrep(num2str(xvalIterToReport,' ','')),strrep(num2str(runs_to_report,' ','')));
-
-qqq = zeroUnwantedTrials(qqq,subjArray,xvalIterToReport,runs_to_report)
+if runs_to_report
+    qqq = zeroUnwantedTrials(qqq,subjArray,xvalIterToReport,runs_to_report)
+end
 for s = subjArray
     [cv resS] = CM_singleSubjProc(s, qqq, xvalIterToReport, task);
     

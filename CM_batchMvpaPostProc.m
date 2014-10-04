@@ -19,7 +19,7 @@ if isempty(task)
     task = 'ret';
 end
 
-dFN = dir(fullfile(resDir, [classStr '.mat']));
+dFN = dir(fullfile(resDir, [classStr]));
 fileNames = {dFN.name};
 dotFiles = cell2mat(cellfun(@(x) x(1)=='.', fileNames, 'UniformOutput', false));
 fileNames(find(dotFiles)) = []; %remove hidden files that are prepended with dots.
