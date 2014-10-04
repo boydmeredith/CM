@@ -1,11 +1,14 @@
-function [res, cv, idx] = CM_mvpaPostProc(qqq, xvalIterToReport, task, plotit, saveDir, subjArray)
-%function [res, cv, idx] = CM_mvpaPostProc(qqq, xvalIterToReport, task, plotit, saveDir, subjArray)
+function [res, cv, idx] = CM_mvpaPostProc(qqq, xvalIterToReport,runs_to_report,task, plotit, saveDir, subjArray)
+%function [res, cv, idx] = CM_mvpaPostProc(qqq, xvalIterToReport, runs_to_report,task, plotit, saveDir, subjArray)
 
 auc = [];
 if isempty(subjArray)
     subjArray = qqq.subjArray;
 end
 
+saveTag = sprintf('xvals%s_runsrpotred%s_',strrep(num2str(xvalIterToReport,' ','')),strrep(num2str(runs_to_report,' ','')));
+
+qqq = zeroUnwantedTrials(qqq,subjArray,xvalIterToReport,runs_to_report)
 for s = subjArray
     [cv resS] = CM_singleSubjProc(s, qqq, xvalIterToReport, task);
     
@@ -25,7 +28,7 @@ for f = 1:length(fn)
 end
 
 if ~isempty(saveDir)
-	cell2csv(fullfile(saveDir, [resS{1}.saveName '.csv']), toPrint, ',', 2000);
+	cell2csv(fullfile(saveDir, [saveTag resS{1}.saveName '.csv']), toPrint, ',', 2000);
 end
 
 res.auc = nan(size(subjArray));
@@ -39,7 +42,7 @@ end
 if plotit
    plot_roc_logits(res,out)
    if ~isempty(saveDir)
-        figurewrite(resS{1}.saveName,[],[],[saveDir],[]);
+        figurewrite([saveTag resS{1}.saveName],[],[],[saveDir],[]);
     end
 end
 end
@@ -218,5 +221,30 @@ vecLength = sz(nonSingletonDims);
 
 out = reshape(vec,vecLength, 1);
 
+end
+
+function res = zeroUnwantedTrials(res,subjArray,xvalIterToReport,runs_to_report)
+for s = subjArray
+    thisS = res.subj{s}.penalty.nVox.weights.iter;
+    for r_it = 1:length(thisS)
+        for xval = xvalIterToReport
+            testidx = thisS{r_it}.iterations(xval).test_idx;
+            switch runs_to_report
+                case 'reportEX'
+                    runs_to_report = [1:4];
+                case 'reportCM'
+                    runs_to_report = [5:8];
+            end
+            trials_to_report = testidx(ismember(thisS{r_it}.condensed_runs(testidx),runs_to_report))
+            %zero out values that we don't want
+            idx_to_report = find(ismember(testidx,trials_to_report));
+            perfmet = thisS{r_it}.iterations(xval).perfmet;
+            res.subj{s}.penalty.nVox.weights.iter{r_it}.iterations(xval).perfmet.guesses = perfmet.guesses(idx_to_report);
+            res.subj{s}.penalty.nVox.weights.iter{r_it}.iterations(xval).perfmet.desireds = perfmet.desireds(idx_to_report);
+            res.subj{s}.penalty.nVox.weights.iter{r_it}.iterations(xval).perfmet.corrects = perfmet.corrects(idx_to_report);
+            res.subj{s}.penalty.nVox.weights.iter{r_it}.iterations(xval).acts=res.subj{s}.penalty.nVox.weights.iter{r_it}.iterations(xvalIterToReport).acts(:,idx_to_report);
+            res.subj{s}.penalty.nVox.weights.iter{r_it}.iterations(xval).test_idx=res.subj{s}.penalty.nVox.weights.iter{r_it}.iterations(xval).test_idx(idx_to_report);
+        end
+    end
 end
 
