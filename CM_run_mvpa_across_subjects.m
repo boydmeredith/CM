@@ -1,33 +1,31 @@
 function [results]= CM_run_mvpa_across_subjects(subj_array, trte, varargin)
 %function [res] = CM_run_mvpa_across_subjects(subj_array, trte, varargin)
-%inputs:
-%subj_array - the subject numbers desired for classification. default is all subs ([1,3:10,12:26])
-%varargin - parameters for classification will be automatically determined by CM_mvpa_params if not otherwise specified. Parameters that can be set include: 'condNames', 'which_traintest', 'trWeights', 'roiName', and others
-%outputs:
-%res - a structure that keeps track of the parameters used for classification as well as the results of each iteration of classifcation
+%inputs: subj_array - the subject numbers desired for classification. default
+%is all subs ([1,3:10,12:26]) varargin - parameters for classification will be
+%automatically determined by CM_mvpa_params if not otherwise specified.
+%Parameters that can be set include: 'condNames', 'which_traintest',
+%'trWeights', 'roiName', and others outputs: res - a structure that keeps track
+%of the parameters used for classification as well as the results of each
+%iteration of classifcation
 
 %determine which classifier to use
-class_args.train_funct_name = 'train_pLR';
-class_args.test_funct_name = 'test_pLR';
+class_args.train_funct_name = 'train_pLR'; 
+class_args.test_funct_name = 'test_pLR'; 
 class_args.penalty = 10000;
     
 %set default subj_array
-if isempty(subj_array)
-    subj_array=[1,3:10,12:26];
+if isempty(subj_array) 
+    subj_array=[1,3:10,12:26]; 
 end
-expt.subj_array = subj_array;
+expt.subj_array =subj_array;
 
 %initialize concatenated subjects variable
-concatAllSubs.pattern = [];
-concatAllSubs.regressors = [];
-concatAllSubs.actives = [];
-concatAllSubs.subjIdx = [];
+concatAllSubs.pattern = []; concatAllSubs.regressors = [];
+concatAllSubs.actives = []; concatAllSubs.subjIdx = [];
 concatAllSubs.condensed_runs = [];
 
 % for each subject, set up struct and put into voxel ind
-for subIdx=1:length(subj_array)
-    tic;
-    subnum = subj_array(subIdx);
+for subIdx=1:length(subj_array) tic; subnum = subj_array(subIdx);
     %get expt structure, to determine classification scheme
     [expt classargs s par] = CM_mvpa_params(subnum, 'ret');
     %incorporate user specified variables into default expt structure
@@ -82,6 +80,7 @@ for subIdx=1:length(subj_array)
             trial_counter = trial_counter + 1;
         end
     end
+    condensed_runs = expt.which_traintest(condensed_runs);
     
     condensed_regs_of_interest = [];
     for i=1:length(expt.condCols)
