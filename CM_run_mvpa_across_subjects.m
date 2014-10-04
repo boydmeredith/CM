@@ -1,5 +1,5 @@
 function [results]= CM_run_mvpa_across_subjects(subj_array, trte, varargin)
-%function [res] = CM_run_mvpa_across_subjects(subj_array, nickname, varargin)
+%function [res] = CM_run_mvpa_across_subjects(subj_array, trte, varargin)
 %inputs:
 %subj_array - the subject numbers desired for classification. default is all subs ([1,3:10,12:26])
 %varargin - parameters for classification will be automatically determined by CM_mvpa_params if not otherwise specified. Parameters that can be set include: 'condNames', 'which_traintest', 'trWeights', 'roiName', and others
