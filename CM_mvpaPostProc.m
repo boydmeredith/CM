@@ -28,17 +28,23 @@ if ~isempty(saveDir)
 	cell2csv(fullfile(saveDir, [resS{1}.saveName '.csv']), toPrint, ',', 2000);
 end
 
-
 res.auc = nan(size(subjArray));
 res.far =  nan(length(subjArray),80);
 res.hr =  nan(length(subjArray),80);
 for s=subjArray
 	ix = out.subs==s;
 	[res.auc(s), res.far(s,:), res.hr(s,:)]= getAuc(out,ix,0);
-	
-
 end
+
 if plotit
+   plot_roc_logits(res,out)
+   if ~isempty(saveDir)
+        figurewrite(resS{1}.saveName,[],[],[saveDir],[]);
+    end
+end
+end
+
+function plot_roc_logits(res, out)
     subplot(1,3,1);
     plot(nanmean(res.far),nanmean(res.hr));
     errorbar3(nanmean(res.far),nanmean(res.hr),ste(res.hr),1,[.2 .6 1]);
@@ -52,11 +58,6 @@ if plotit
     hist(out.actsVec( out.desiredsVec==2),25);
     title('class A probs for B trials');
     axis square;
-
-    if ~isempty(saveDir)
-        figurewrite(resS{1}.saveName,[],[],[saveDir],[]);
-    end
-end
 end
 
 
