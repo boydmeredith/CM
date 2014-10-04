@@ -233,7 +233,8 @@ for subNum=subj_array
                 else %run the normal classifier without scrambling
                     [subj results] = cross_validation(subj,'epi_d_hp_z_condensed','conds','runs_xval_bal',classifier_mask,classArgs,'perfmet_functs', expt.perfmetFuncts);
                 end
-                
+               
+	       	
                 
                 if expt.generate_importance_maps 
                     for rif = 1:length(results.iterations);
@@ -244,6 +245,7 @@ for subNum=subj_array
                 
                 %save results
                 res.subj{subNum}.penalty(1).nVox(1).weights(1).iter{currNumTotalIters} = results;
+                res.subj{subNum}.penalty(1).nVox(1).weights(1).condensed_runs = condensed_runs;
                 res.subj{subNum}.penalty(1).nVox(1).weights(1).expt{currNumTotalIters} = expt;
                 res.subjArray = subj_array;
                 

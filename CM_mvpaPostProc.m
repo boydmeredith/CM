@@ -1,12 +1,18 @@
 function [res, cv, idx] = CM_mvpaPostProc(qqq, xvalIterToReport,runs_to_report,task, plotit, saveDir, subjArray)
 %function [res, cv, idx] = CM_mvpaPostProc(qqq, xvalIterToReport, runs_to_report,task, plotit, saveDir, subjArray)
 
+if iscell(runs_to_report)
+%report different run groups recursively
+for i =1:length(runs_to_report)
+		CM_mvpaPostProc(qqq, xvalIterToReport,runs_to_report{i},task, plotit, saveDir, subjArray);
+	end
+end
+
 auc = [];
 if isempty(subjArray)
     subjArray = qqq.subjArray;
 end
-
-saveTag = sprintf('xvals%s_runsrpotred%s_',strrep(num2str(xvalIterToReport,' ','')),strrep(num2str(runs_to_report,' ','')));
+saveTag = sprintf('xvals%s_runsrpotred%s_',strrep(num2str(xvalIterToReport),' ',''),strrep(num2str(runs_to_report),' ',''));
 if runs_to_report
     qqq = zeroUnwantedTrials(qqq,subjArray,xvalIterToReport,runs_to_report)
 end
@@ -236,7 +242,7 @@ for s = subjArray
                 case 'reportCM'
                     runs_to_report = [5:8];
             end
-            trials_to_report = testidx(ismember(thisS{r_it}.condensed_runs(testidx),runs_to_report))
+            trials_to_report = testidx(ismember(res.subj{s}.penalty.nVox.weights.condensed_runs(testidx),runs_to_report))
             %zero out values that we don't want
             idx_to_report = find(ismember(testidx,trials_to_report));
             perfmet = thisS{r_it}.iterations(xval).perfmet;
@@ -248,4 +254,4 @@ for s = subjArray
         end
     end
 end
-
+end
