@@ -84,9 +84,6 @@ expt.which_traintest = [1 2 3 4 0 0 0 0];
 expt.condNames = {'hit', 'cr'};
 expt.subjFname = fullfile(expt.dir, subj_id, expt.mvpaDirStr,[subj_id '_' expt.roiName '.mat']); %having this previously saved avoids time-consuming data extraction and preproc
 
-
-
-
 %% establish general parameters
 S.idxTr = [];
 S.idxTe = [];
