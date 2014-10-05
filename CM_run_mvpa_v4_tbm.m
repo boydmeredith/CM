@@ -124,6 +124,7 @@ for subNum=subj_array
     
     % manipulate runs based on which_traintest to set xvalid bins
     condensed_runs = subj.selectors{1}.mat(~restTp);
+    res.subj{subNum}.penalty(1).nVox(1).weights(1).condensed_runs = condensed_runs;
     condensed_runs = expt.which_traintest(condensed_runs);
     
     %modify numRuns now that we've altered to make the training and testing
@@ -153,7 +154,7 @@ for subNum=subj_array
         % clean up workspace to save RAM
         subj = remove_mat(subj,'pattern','epi_d_hp_z'); % remove original uncondensed pattern (full timeseries)
         
-        % update run vector to condensed format
+        % update run vector to condensed format.
         subj.selectors{1}.mat = condensed_runs;
         subj.selectors{1}.matsize = size(condensed_runs);
         
@@ -245,7 +246,6 @@ for subNum=subj_array
                 
                 %save results
                 res.subj{subNum}.penalty(1).nVox(1).weights(1).iter{currNumTotalIters} = results;
-                res.subj{subNum}.penalty(1).nVox(1).weights(1).condensed_runs = condensed_runs;
                 res.subj{subNum}.penalty(1).nVox(1).weights(1).expt{currNumTotalIters} = expt;
                 res.subjArray = subj_array;
                 

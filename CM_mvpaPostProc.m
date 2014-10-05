@@ -237,12 +237,6 @@ for s = subjArray
     for r_it = 1:length(thisS)
         for xval = xvalIterToReport
             testidx = thisS{r_it}.iterations(xval).test_idx;
-            switch runs_to_report
-                case 'reportEX'
-                    runs_to_report = [1:4];
-                case 'reportCM'
-                    runs_to_report = [5:8];
-            end
             trials_to_report = testidx(ismember(res.subj{s}.penalty.nVox.weights.condensed_runs(testidx),runs_to_report))
             %zero out values that we don't want
             idx_to_report = find(ismember(testidx,trials_to_report));
