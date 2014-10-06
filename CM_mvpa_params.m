@@ -12,6 +12,7 @@ expt.mvpaDirStr = 'mvpa';
 %expt.dataImgsToUse = 'raw_filenames.mat'; % .mat file containing names of all functional images (must exist for each subject; can be created by running cellstr(SPM.xY.P) on subject's SPM.mat file)
 expt.numTpPerRun = 256; % number of TRs per scanning run (coded for fixed value; adjust code structure if variable TR counts across runs)
 %expt.roiName = 'rLR_PrePostCentralandSMA';  % name of mask to be used for voxel selection (can be a small ROI, a whole-brain mask, or anywhere in between)
+expt.xval_iters_for_imp_map = [];
 %flags determine how classifier wrapper behaves
 expt.num_full_iter = 1; % number of times to run the entire classification process, including feature selection
 expt.num_iter_with_same_data = 1; % number of times to run the classfication step for a given subset of data
