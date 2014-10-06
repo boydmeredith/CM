@@ -1,10 +1,10 @@
-function [res, cv, idx] = CM_mvpaPostProc(qqq, xvalIterToReport,runs_to_report,task, plotit, saveDir, subjArray)
-%function [res, cv, idx] = CM_mvpaPostProc(qqq, xvalIterToReport, runs_to_report,task, plotit, saveDir, subjArray)
+function [res, cv] = CM_mvpaPostProc(qqq, xvalIterToReport,runs_to_report,task, plotit, saveDir, subjArray)
+%function [res, cv] = CM_mvpaPostProc(qqq, xvalIterToReport, runs_to_report,task, plotit, saveDir, subjArray)
 
 if iscell(runs_to_report)
 %report different run groups recursively
 	for i =1:length(runs_to_report)
-		[res{i}, cv{i}, idx{i}]=CM_mvpaPostProc(qqq, xvalIterToReport,runs_to_report{i},task, plotit, saveDir, subjArray);
+		[res{i}, cv{i}]=CM_mvpaPostProc(qqq, xvalIterToReport,runs_to_report{i},task, plotit, saveDir, subjArray);
 	end
 	return;
 end
