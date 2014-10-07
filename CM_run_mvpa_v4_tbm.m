@@ -269,10 +269,26 @@ for subNum=subj_array
     
     clear subj
 end
+if expt.generate_importance_maps
+	write_mean_imp_map(expt);
+end
 if ~(exist(expt.group_mvpa_dir))
     mkdir(expt.group_mvpa_dir);
 end
 save(fullfile(expt.group_mvpa_dir, [expt.saveName '.mat']), 'res');
+
+end
+
+function write_mean_imp_map(expt)
+	cd(expt.impMapDirStr);
+	for c = 1:length(expt.condNames)
+		dfn = dir(fullfile(expt.impMapDirStr, ['*' expt.condNames{c} '*']));
+		fn = {dfn.name};
+		if length(fn) > length(expt.subj_array), break, end;
+		out_name = regexprep(fn{1},'CM\d*','mean');
+		spm_imcalc_ui(fn,out_name,'mean(X)',{1,[],[],[]});
+
+	end
 end
 
 function results_IW = record_weights(results, nRuns, classArgs)
