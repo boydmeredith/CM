@@ -139,8 +139,8 @@ df3 = aggregate(auc~tr+trte,df_trbytr,mean)
 df3$sem_auc= aucsem$auc
 df3$tr = 2*(as.numeric(df3$tr)-1)
 
-h3<-ggplot(df_h1, aes(x=t0)) + chanceline+geom_vline(xintercept=0, linetype="dotted")+ theme_bw() 
-h3 <- h3 + geom_ribbon(aes(ymin=mean_auc-sem_auc, ymax=mean_auc+sem_auc,alpha=1, fill=trte,color=trte)) + geom_line(aes(y=mean_auc,fill=trte,color=trte),linetype="dashed")
+h3<-ggplot(df3, aes(x=tr)) + chanceline+geom_vline(xintercept=0, linetype="dotted")+ theme_bw() 
+h3 <- h3 + geom_ribbon(aes(ymin=auc-sem_auc, ymax=auc+sem_auc,alpha=1, fill=trte,color=trte)) + geom_line(aes(y=auc,fill=trte,color=trte),linetype="dashed")
 h3 <- h3 + labs(y="Classifier Performance (AUC)", x="Time post stimulus onset (s)", title="Classifier Performance Across Time") + ylim(.4, .7) +theme()
 h3 +plotformat+scale_fill_manual(values=cbPalette,name="Testing Data",breaks=c("EX>EX","EX>CM"),labels=c("Explicit","Countermeasures"))+scale_colour_manual(values=cbPalette,name="Testing Data",breaks=c("EX>EX","EX>CM"),labels=c("Explicit","Countermeasures"))
 ```
