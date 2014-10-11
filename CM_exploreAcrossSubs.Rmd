@@ -1,0 +1,63 @@
+---
+title: "CM across subs mvpa"
+output: html_document
+---
+```{r load data and categorize, echo=F, results=F}
+require(gridExtra)
+library(ggplot2)
+
+cm_df = read.csv("/Users/Jesse/fMRI/COUNTERMEASURES/Data/Functional/mvpa_results/aucSummary_reportCM_across_subs_masked.csv", header = T)
+ex_df = read.csv("/Users/Jesse/fMRI/COUNTERMEASURES/Data/Functional/mvpa_results/aucSummary_reportEX_across_subs_masked.csv", header = T)
+cm_df$reported = 'Countermeasures'
+ex_df$reported = 'Explicit'
+
+df = rbind(ex_df,cm_df)
+df$reported=factor(df$reported,levels=c('Explicit','Countermeasures'))
+
+#add conditions info
+df$conds[grepl("conds_hitVcr_",df$name)]="hit v cr"
+  
+#add train test info
+df$train[grepl("trAll",df$name)]="train EX and CM"
+df$train[grepl("trEX",df$name)]="train EX"
+df$train[grepl("trCM",df$name)]="train CM"
+
+df$subj = sub(".*minus","",df$name)
+df$subj = sub(".img","",df$subj)
+```
+
+```{r aggregate data and plot}
+ #meanAndSem=function(x) c(mn = mean(x,na.rm=TRUE), se = sd(x,na.rm=T)/sqrt((sum(as.double(!is.na(x))))), max(x), min(x))
+cbPalette <- c( "#56B4E9","#009E73")
+
+
+df2 = aggregate(mean_auc~conds+train+reported, df, FUN=mean)
+df2_h = subset(df2, train=="train EX")
+df_h = subset(df, train=="train EX")
+
+h1<-ggplot(df_h, aes(x=reported,y=mean_auc, fill=reported))+geom_violin(trim=F,alpha=.6)
+
+h1<-h1+geom_line(aes(group=df_h$subj),color=df_h$subj,linetype="longdash")
+
+h1<-h1+geom_point(stat='summary',fun.y='mean')
+
+h1+theme_bw()+stat_abline(intercept=.5,slope=0,linetype="dashed")+labs(y="Classifier Performance (AUC)", x="Testing Data (task)", title="Classifier Performance Across Subjects")+scale_x_discrete(breaks=NULL)+theme(axis.ticks=element_blank(),axis.text.x=element_blank())+scale_fill_manual(values=cbPalette,name="Testing Data",breaks=c("Explicit","Countermeasures"),labels=c("Explicit","Countermeasures"))
+
+
+
+```
+
+
+```{r make plots for data trained within ex}
+df2 = read.csv("/Volumes/Tyler_Drive1/CM_mvpa_results/aucSummary_exex_cmcm_hitvcr_macarthur_101014.csv", header = T)
+
+df2$trte=factor(df2$trte,levels=c('EX>EX','EX>CM'))
+
+
+h2<-ggplot(df2, aes(x=trte,y=auc, fill=trte))+geom_violin(trim=F,alpha=.6)
+
+h2<-h2+geom_line(aes(group=df_h$subj),color=df_h$subj,linetype="longdash")
+
+h2<-h2+geom_point(stat='summary',fun.y='mean')
+
+h2+theme_bw()+stat_abline(intercept=.5,slope=0,linetype="dashed")+labs(y="Classifier Performance (AUC)", x="Testing Data (task)", title="Classifier Performance Across Subjects")+scale_x_discrete(breaks=NULL)+theme(axis.ticks=element_blank(),axis.text.x=element_blank())+scale_fill_manual(values=cbPalette,name="Testing Data",breaks=c("Explicit","Countermeasures"),labels=c("Explicit","Countermeasures"))
