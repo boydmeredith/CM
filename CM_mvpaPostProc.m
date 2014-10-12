@@ -1,6 +1,7 @@
 function [res, cv] = CM_mvpaPostProc(qqq, xvalIterToReport,runs_to_report,task, plotit, saveDir, subjArray)
 %function [res, cv] = CM_mvpaPostProc(qqq, xvalIterToReport, runs_to_report,task, plotit, saveDir, subjArray)
 
+auc = [];
 if iscell(runs_to_report)
 %report different run groups recursively
 	for i =1:length(runs_to_report)
@@ -9,14 +10,16 @@ if iscell(runs_to_report)
 	return;
 end
 
-auc = [];
 if isempty(subjArray)
     subjArray = qqq.subjArray;
 end
-saveTag = sprintf('xvals%s_runsrpotred%s_',strrep(num2str(xvalIterToReport),' ',''),strrep(num2str(runs_to_report),' ',''));
+
+saveTag = sprintf('xvals%s_runsrepotred%s_',strrep(num2str(xvalIterToReport),' ',''),strrep(num2str(runs_to_report),' ',''));
+
 if runs_to_report
     qqq = zeroUnwantedTrials(qqq,subjArray,xvalIterToReport,runs_to_report)
 end
+
 for s = subjArray
     [cv resS] = CM_singleSubjProc(s, qqq, xvalIterToReport, task);
     
@@ -232,6 +235,8 @@ out = reshape(vec,vecLength, 1);
 end
 
 function res = zeroUnwantedTrials(res,subjArray,xvalIterToReport,runs_to_report)
+
+
 for s = subjArray
     thisS = res.subj{s}.penalty.nVox.weights.iter;
     for r_it = 1:length(thisS)
