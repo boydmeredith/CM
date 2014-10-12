@@ -249,8 +249,8 @@ elseif strfind(trte,'minus')
 else
     subj.selectors{1}.mat = concatAllSubs.subjIdx;
 end
-
-imagesc(subj.selectors{1}.mat); 
+clf;
+imagesc([concatAllSubs.subjIdx; concatAllSubs.regressors; concatAllSubs.condensed_runs;subj.selectors{1}.mat])
 hold on; colorbar; title('runs selector');
 
 %subj = remove_mat(subj,'selectors','conditions_of_interest'); % remove original uncondensed pattern (full timeseries)

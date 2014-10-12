@@ -30,10 +30,12 @@ for resf =1:length(fileNames)
     if isAcrossSubsResStruct
         res.subj{1}.penalty.nVox.weights.iter{1} = thisRes.results{1};
         res.subj{1}.penalty.nVox.weights.expt{1}.saveName = fileNames{resf};
+        
         subjArray = 1;
     else
         res = thisRes.res;
     end
+    res.isAcrossSubsResStruct = isAcrossSubsResStruct;
     
     [resB{resf} cvB{resf}] = CM_mvpaPostProc(res, xvalIterToReport,runs_to_report, task, plotit, fullfile(resDir,'figs'), subjArray);
     resB{resf}.name = fileNames{resf};
