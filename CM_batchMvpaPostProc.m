@@ -30,7 +30,7 @@ for resf =1:length(fileNames)
     if isAcrossSubsResStruct
         res.subj{1}.penalty.nVox.weights.iter{1} = thisRes.results{1};
         res.subj{1}.penalty.nVox.weights.expt{1}.saveName = fileNames{resf};
-        
+        res.subj{1}.penalty.nVox.weights.condensed_runs = thisRes.results{1}.condensed_runs;
         subjArray = 1;
     else
         res = thisRes.res;
