@@ -43,7 +43,7 @@ chanceline=stat_abline(intercept=.5,slope=0,linetype="dashed")
 
 Figure1.
 
-```{r plot data, fig.width = 500, fig.height = 500 }
+```{r plot data}
 cbPalette <- c( "#56B4E9","#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7","#999999", "#E69F00")
 
 df_h1 = subset(df,grepl("EX>",df$trte))
@@ -100,12 +100,51 @@ h1<-h1+geom_line(aes(group=df_h$subj),color=df_h$subj,linetype="longdash")
 
 h1<-h1+geom_point(stat='summary',fun.y='mean')
 
-h1<-h1+theme_bw()+chanceline+labs(y="Classifier Performance (AUC)", x="Testing Data (task)", title="Classifier Performance Across Subjects")+scale_x_discrete(breaks=NULL)+theme(axis.ticks=element_blank(),axis.text.x=element_blank())+scale_fill_manual(values=cbPalette,name="Testing Data",breaks=c("Explicit","Countermeasures"),labels=c("Explicit","Countermeasures"))
+h1<-h1+theme_bw()+chanceline+labs(y="Classifier Performance (AUC)", x="Testing Data (task)", title="Classifier Performance Across Subjects")+theme(axis.ticks=element_blank(),axis.text.x=element_blank())+scale_fill_manual(values=cbPalette,name="Testing Data",breaks=c("Explicit","Countermeasures"),labels=c("Explicit","Countermeasures"))
 h1+plotformat
 
 
 
 ```
+
+```{r Across S figures}
+xs_exex = read.csv("/Users/Jesse/fMRI/COUNTERMEASURES/Data/Functional/mvpa_results/acrossSs_trEXteEX_combinedFXMask_hitvcr.csv", header = T)
+xs_exex$train = "EX>EX"
+xs_excm = read.csv("/Users/Jesse/fMRI/COUNTERMEASURES/Data/Functional/mvpa_results/acrossSs_trEXteCM_combinedFXMask_hitvcr.csv", header = T)
+xs_excm$train = "EX>CM"
+
+xs_trex = rbind(xs_exex, xs_excm)
+xs_trex$train = factor(xs_trex$train,levels=c("EX>EX","EX>CM"))
+
+xs_trex$trW[grepl("trW1__0__0__0__0__0_",xs_trex$name)]=0
+xs_trex$trW[grepl("trW0__1__0__0__0__0",xs_trex$name)]=2
+xs_trex$trW[grepl("trW0__0__1__0__0__0",xs_trex$name)]=4
+xs_trex$trW[grepl("trW0__0__0__1__0__0",xs_trex$name)]=6
+xs_trex$trW[grepl("trW0__0__0__0__1__0",xs_trex$name)]=8
+xs_trex$trW[grepl("trW0__0__0__0__0__1",xs_trex$name)]=10
+xs_trex$trW[grepl("trW0____",xs_trex$name)]="late"
+
+xs_trex$conds[grepl("conds_hitVcr_",xs_trex$name)]="hit v cr"
+
+xs_trex$mask[grepl("roiexhitsgrcrs_AND_cmhitsgrcrs_minus",xs_trex$name)]="combined fx leave one out"
+```
+
+```{r across subs tr by tr}
+xs_traggdf=aggregate(mean_auc~trW+train+conds+mask,xs_trex,mean)
+
+sem=aggregate(mean_auc~trW+train+conds+mask,xs_trex,function(x) se = sd(x,na.rm=T)/sqrt((sum(as.double(!is.na(x))))))
+
+xs_traggdf$sem_auc=sem$mean_auc
+
+
+xs_traggdf_trs = subset(xs_traggdf,trW!="late")
+xs_traggdf_trs$trW = as.numeric(xs_traggdf_trs$trW)
+
+xs_tr <- ggplot(xs_traggdf_trs, aes(x=trW))+chanceline+geom_vline(xintercept=0, linetype="dotted")+ theme_bw() #+scale_fill_manual(values=cbPalette) + scale_colour_manual(values=cbPalette)
+xs_tr<-xs_tr + geom_ribbon(aes(ymin=mean_auc-sem_auc, ymax=mean_auc+sem_auc,alpha=1, fill=train,color=train)) + geom_line(aes(y=mean_auc,fill=train,color=train),linetype="dashed")
+xs_tr+plotformat+scale_fill_manual(values=cbPalette,name="Testing Data",breaks=c("EX>EX","EX>CM"),labels=c("Explicit","Countermeasures"))+scale_colour_manual(values=cbPalette,name="Testing Data",breaks=c("EX>EX","EX>CM"),labels=c("Explicit","Countermeasures"))+ylim(.4,.7)+ labs(y="Classifier Performance (AUC)", x="Time post stimulus onset (s)", title="Classifier Performance Across Time")+scale_x_continuous(breaks=seq(0,10,2))
+```
+
 
 BEGIN PLOTS BASED ON OLD DATA
 old data here means that this data was produced for the first submission of the paper. there have been subsequent modifications of the code, which mean we should rerun analyses we report.
@@ -132,15 +171,3 @@ h2+theme_bw()+labs(y="Classifier Performance (AUC)", x="Testing Data (task)", ti
 ```
 
 
-```{r}
-df_trbytr = subset(df_withinS,tr!="late")
-aucsem = aggregate(auc~tr+trte,df_trbytr,function(x) se = sd(x,na.rm=T)/sqrt((sum(as.double(!is.na(x))))))
-df3 = aggregate(auc~tr+trte,df_trbytr,mean)
-df3$sem_auc= aucsem$auc
-df3$tr = 2*(as.numeric(df3$tr)-1)
-
-h3<-ggplot(df3, aes(x=tr)) + chanceline+geom_vline(xintercept=0, linetype="dotted")+ theme_bw() 
-h3 <- h3 + geom_ribbon(aes(ymin=auc-sem_auc, ymax=auc+sem_auc,alpha=1, fill=trte,color=trte)) + geom_line(aes(y=auc,fill=trte,color=trte),linetype="dashed")
-h3 <- h3 + labs(y="Classifier Performance (AUC)", x="Time post stimulus onset (s)", title="Classifier Performance Across Time") + ylim(.4, .7) +theme()
-h3 +plotformat+scale_fill_manual(values=cbPalette,name="Testing Data",breaks=c("EX>EX","EX>CM"),labels=c("Explicit","Countermeasures"))+scale_colour_manual(values=cbPalette,name="Testing Data",breaks=c("EX>EX","EX>CM"),labels=c("Explicit","Countermeasures"))
-```
