@@ -145,6 +145,52 @@ xs_tr<-xs_tr + geom_ribbon(aes(ymin=mean_auc-sem_auc, ymax=mean_auc+sem_auc,alph
 xs_tr+plotformat+scale_fill_manual(values=cbPalette,name="Testing Data",breaks=c("EX>EX","EX>CM"),labels=c("Explicit","Countermeasures"))+scale_colour_manual(values=cbPalette,name="Testing Data",breaks=c("EX>EX","EX>CM"),labels=c("Explicit","Countermeasures"))+ylim(.4,.7)+ labs(y="Classifier Performance (AUC)", x="Time post stimulus onset (s)", title="Classifier Performance Across Time")+scale_x_continuous(breaks=seq(0,10,2))
 ```
 
+```{r repeat for masked analyses within S}
+inS_masked = read.csv("/Volumes/Tyler_Drive1/CM_mvpa_results/aucSummary__exexandexcm_lateTrs_withinS_exANDcr_hitgrcrMask.csv", header = T)
+inS_masked$conds[grepl("conds_hitVcr_",inS_masked$name)]="hit v cr"
+inS_masked$mask[grepl("roiexhitsgrcrs_AND_cmhitsgrcrs_minus",inS_masked$name)]="combined fx leave one out"
+#add train test info
+inS_masked$train[grepl("trTe0_0_0_0_1_2_3_4_",inS_masked$name)]="CM>CM (4-fold)"
+inS_masked$train[grepl("trTe1_2_3_4_0_0_0_0_",inS_masked$name)]="EX>EX (4-fold)"
+inS_masked$train[grepl("trTe1_1_1_1_2_2_2_2_",inS_masked$name) & inS_masked$xvalIteration==2]="EX>CM (no xval)"
+inS_masked$train[grepl("trTe1_1_1_1_2_2_2_2_",inS_masked$name) & inS_masked$xvalIteration==1]="CM>EX (no xval)"
+
+inS_masked$subj = sub(".*minus","",inS_masked$name)
+inS_masked$subj = sub(".mat","",inS_masked$subj)
+
+inS_masked$trW[grepl("trW1__0__0__0__0__0",inS_masked$name)]=0
+inS_masked$trW[grepl("trW0__1__0__0__0__0",inS_masked$name)]=2
+inS_masked$trW[grepl("trW0__0__1__0__0__0",inS_masked$name)]=4
+inS_masked$trW[grepl("trW0__0__0__1__0__0",inS_masked$name)]=6
+inS_masked$trW[grepl("trW0__0__0__0__1__0",inS_masked$name)]=8
+inS_masked$trW[grepl("trW0__0__0__0__0__1",inS_masked$name)]=10
+inS_masked$trW[grepl("trW0____",inS_masked$name)]="late"
+
+inS_masked$train = factor(inS_masked$train, levels=c("EX>EX (4-fold)", "EX>CM (no xval)"))
+
+inS_masked_late = subset(inS_masked, trW=="late")
+
+c<- cor.test(inS_masked_late$mean_auc[inS_masked$train=="EX>EX (4-fold)"], inS_masked$mean_auc[inS_masked$train=="EX>CM (no xval)"], method = "pearson" )
+
+ggplot(inS_masked_late, aes(x=train,y=mean_auc, fill=train)) + 
+  geom_violin(trim=F, alpha=.6) + geom_line(aes(group=subj,color=subj),linetype="longdash") + 
+  geom_point(stat='summary',fun.y='mean') + theme_bw()+ chanceline +
+  labs(y="Classifier Performance (AUC)", x="Testing Data (task)", title="Masked Classifier Performance Within Subjects")+theme(axis.ticks=element_blank(),axis.text.x=element_blank()) + scale_fill_manual(values=cbPalette,name="Testing Data",breaks=c("Explicit","Countermeasures"),labels=c("Explicit","Countermeasures")) + plotformat 
+
+
+
+inS_masked_ag = aggregate(mean_auc~trW+train+conds+mask,inS_masked,mean)
+sem=aggregate(mean_auc~trW+train+conds+mask,inS_masked,function(x) se = sd(x,na.rm=T)/sqrt((sum(as.double(!is.na(x))))))
+
+inS_masked_ag$sem_auc=sem$mean_auc
+
+df_h1 = subset(inS_masked_ag,!grepl("late",inS_masked_ag$trW))
+df_h1$trW = as.numeric(df_h1$trW)
+
+  ggplot(df_h1, aes(x=trW, group=train)) + chanceline+geom_vline(xintercept=0, linetype="dotted")+ theme_bw() + geom_ribbon(aes(ymin=mean_auc-sem_auc, ymax=mean_auc+sem_auc,alpha=1, fill=train,color=train)) + geom_line(aes(y=mean_auc,fill=train,color=train),linetype="dashed")+ labs(y="Classifier Performance (AUC)", x="Time post stimulus onset (s)", title="Classifier Performance Across Time") + ylim(.4, .7) +theme()+scale_fill_manual(values=cbPalette) + scale_colour_manual(values=cbPalette)
+
+```
+
 
 BEGIN PLOTS BASED ON OLD DATA
 old data here means that this data was produced for the first submission of the paper. there have been subsequent modifications of the code, which mean we should rerun analyses we report.
