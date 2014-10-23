@@ -163,11 +163,17 @@ idx.allTrialOns = idx.time0;
 
 %% results sections
 % res.pRespOld = sum(idx.respRFK)/sum(validTestTrials);
-% res.pHit = sum(idx.hit)/sum(idx.old);
-% res.pFA = sum(idx.FA)/sum(idx.new);
+ res.pHit = sum(idx.hit)/sum(idx.old);
+ res.pFa = sum(idx.fa)/sum(idx.new);
+ res.pExHit = sum(idx.hit)/sum(idx.old .* idx.ex);
+ res.pCmHit = sum(idx.hit)/sum(idx.old .* idx.cm);
+ res.pExFa = sum(idx.fa)/sum(idx.old .* idx.ex);
+ res.pCmFa = sum(idx.fa)/sum(idx.old .* idx.cm);
 % 
 % %dprime
-% res.dprime = norminv(res.pHit) - norminv(res.pFA);
+ res.dprime = norminv(res.pHit) - norminv(res.pFa);
+ res.exDprime = norminv(res.pExHit) - norminv(res.pExFa);
+ res.cmDprime = norminv(res.pCmHit) - norminv(res.pCmFa);
 % res.rtHit = nanmean(rt(find(idx.hit)),1);
 % 
 % %%psychophysics
