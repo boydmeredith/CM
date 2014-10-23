@@ -46,8 +46,12 @@ res.auc = nan(size(subjArray));
 res.far =  nan(length(subjArray),80);
 res.hr =  nan(length(subjArray),80);
 for s=subjArray
+    
 	ix = out.subs==s;
-	[res.auc(s), res.far(s,:), res.hr(s,:)]= getAuc(out,ix,0);
+    
+    s_ix = find(s,subjArray);
+    
+	[res.auc(s_ix), res.far(s_ix,:), res.hr(s_ix,:)]= getAuc(out,ix,0);
 end
 
 if plotit

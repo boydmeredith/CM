@@ -7,10 +7,9 @@ function [resB cvB out] = CM_batchMvpaPostProc(resDir, classStr, xvalIterToRepor
 %<task>: default value is 'ret'
 
 toR = [];
+allSubsArray = [1 3:10 12:26];
+userSubjArray = subjArray;
 
-if isempty(subjArray)
-    subjArray = [1 3:10 12:26];
-end
 
 if isempty(classStr)
     classStr = '*conds*';
@@ -36,7 +35,9 @@ for resf =1:length(fileNames)
         res = thisRes.res;
     end
     res.isAcrossSubsResStruct = isAcrossSubsResStruct;
-    
+    if isempty(userSubjArray)
+        subjArray = res.subjArray;
+    end
     [resB{resf} cvB{resf}] = CM_mvpaPostProc(res, xvalIterToReport,runs_to_report, task, plotit, fullfile(resDir,'figs'), subjArray);
     resB{resf}.name = fileNames{resf};
     cvB{resf}.name = fileNames{resf};
@@ -44,14 +45,19 @@ for resf =1:length(fileNames)
     toR.resname{resf} = resB{resf}.name;
     toR.mean_auc(resf,:) = nanmean(resB{resf}.auc);
     toR.sem_auc(resf,:) = nansem(resB{resf}.auc);
-    for s = subjArray
+    for s = allSubsArray
         fn = sprintf('s%02d_auc',s);
+        if s > length(resB{resf}.auc)
+            toR.(fn)(resf,:) = nan;
+        else
         toR.(fn)(resf,:) = resB{resf}.auc(s);
+        end
     end
 end
 
-out=['name';toR.resname'];
 fn = fieldnames(toR);
+out=['name';toR.resname'];
+
 for f = 2:length(fn)
     vals = toR.(fn{f});
     assert(isfloat(vals));
