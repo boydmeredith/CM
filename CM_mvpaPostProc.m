@@ -86,7 +86,7 @@ par = CM_Params(s, task, 0);
 resS = qqq.subj{s}.penalty.nVox.weights.expt;
 for resit = 1:length(qqq.subj{s}.penalty.nVox.weights.iter)
     % read in classification data
-    s, resit
+    % s, resit
     if xvalIterToReport
         resStruct = qqq.subj{s}.penalty.nVox.weights.iter{resit}.iterations(xvalIterToReport);
     else

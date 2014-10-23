@@ -24,6 +24,7 @@ dotFiles = cell2mat(cellfun(@(x) x(1)=='.', fileNames, 'UniformOutput', false));
 fileNames(find(dotFiles)) = []; %remove hidden files that are prepended with dots.
 
 for resf =1:length(fileNames)
+    display(['Now processing ' fileNames{resf} '...']);
     thisRes =load(fileNames{resf},'-mat');
     isAcrossSubsResStruct = isfield(thisRes,'results');
     if isAcrossSubsResStruct
