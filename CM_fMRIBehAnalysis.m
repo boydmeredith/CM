@@ -3,7 +3,7 @@ function [res, psyphys, idx, gRes] = CM_fMRIBehAnalysis(par,task)
 % <par> = subject parameters setup by CM_Param
 
 %specify variables for analysis
-
+SUBJARRAY = [1,3:10,12:26];
 EXCLUDEHIGHRTS = 0;
 FIXDOUBLERESPS = 0;
 %initialize variables
@@ -14,6 +14,7 @@ if nargin < 2
 end
 
 if ~isstruct(par)
+    assert(ismember(par,SUBJARRAY));
     par = CM_Params(par, task);
 end
 
