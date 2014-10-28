@@ -85,6 +85,8 @@ expt.which_traintest = [1 2 3 4 0 0 0 0];
 expt.condNames = {'hit', 'cr'};
 expt.subjFname = fullfile(expt.dir, subj_id, expt.mvpaDirStr,[subj_id '_' expt.roiName '.mat']); %having this previously saved avoids time-consuming data extraction and preproc
 
+expt.srch_radius = 10;
+
 %% establish general parameters
 S.idxTr = [];
 S.idxTe = [];
@@ -101,6 +103,8 @@ S.group_mvpa_dir = [S.expt_dir 'mvpa_results2'];
 
 
 S.workspace_dir = [par.subdir '/' 'mvpa_workspace'];
+
+
 
 %% preprocessing
 S.preprocType = 'spm'; % 'spm' for spm preprocessing, 'knk' for kendrick preprocessing
