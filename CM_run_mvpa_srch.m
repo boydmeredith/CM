@@ -72,9 +72,39 @@ for iSub = subjArray
 			'new_map_patname', 'epi_d_hp_z_condensed_srch', ...
 			'thresh', []);
 
-		keyboard;
-        summarize(Subj);
 		
+        
+        
+        Subj=create_sorted_mask( ...
+            Subj,'epi_d_hp_z_condensed_srch', ...
+            'epi_d_hp_z_condensed_srch_top200', ...
+            200,'descending',true)
+        
+        Subj=create_sorted_mask( ...
+            Subj,'epi_d_hp_z_condensed_srch', ...
+            'epi_d_hp_z_condensed_srch_bottom200', ...
+            200,'descending',false)
+        
+        class_args.train_funct_name = 'train_plr';
+        class_args.test_funct_name = 'test_plr';
+        class_args.penalty = 10;
+        
+        [Subj res.top200SlMask{iSub}] = cross_validation( ...
+            Subj, ...
+            'epi_d_hp_z_condensed', ... % data
+            'conds', ... % regressors
+            SL_SELECTOR_TO_USE, ... % xval selectors
+            'epi_d_hp_z_condensed_srch_top200', ... % mask group
+            class_args,'perfmet_functs', expt.perfmetFuncts);
+        
+        [Subj res.bottom200SlMask{iSub}] = cross_validation( ...
+            Subj, ...
+            'epi_d_hp_z_condensed', ... % data
+            'conds', ... % regressors
+            SL_SELECTOR_TO_USE, ... % xval selectors
+            'epi_d_hp_z_condensed_srch_bottom200', ... % mask group
+            class_args,'perfmet_functs', expt.perfmetFuncts);
+        
 
 	end
 
