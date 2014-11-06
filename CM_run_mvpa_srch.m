@@ -99,7 +99,7 @@ for iSub = subjArray
             'conds', ... % regressors
             SL_SELECTOR_TO_USE, ... % xval selectors
             'epi_d_hp_z_condensed_srch_top200', ... % mask group
-            class_args,'perfmet_functs', expt.perfmetFuncts);
+            class_args,'perfmet_functs', Expt.perfmetFuncts);
         
         [Subj res.bottom200SlMask{iSub}] = cross_validation( ...
             Subj, ...
@@ -107,7 +107,7 @@ for iSub = subjArray
             'conds', ... % regressors
             SL_SELECTOR_TO_USE, ... % xval selectors
             'epi_d_hp_z_condensed_srch_bottom200', ... % mask group
-            class_args,'perfmet_functs', expt.perfmetFuncts);
+            class_args,'perfmet_functs', Expt.perfmetFuncts);
         
 
 	end
@@ -117,7 +117,7 @@ end
 if ~exist(Expt.groupMvpaDir)
 	mkdir(Expt.groupMvpaDir);
 end
-save(fullfile(Expt.group_mvpa_dir, Expt.saveName),'res');
+save(fullfile(Expt.group_mvpa_dir, Expt.saveName),'res', 'Subj');
 
 end
 
