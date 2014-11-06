@@ -73,6 +73,9 @@ for iSub = subjArray
 			'new_map_patname', 'epi_d_hp_z_condensed_srch', ...
 			'thresh', []);
 
+        % visualize 1st resulting searchlight pattern 
+        view_montage(Subj,'mask','SEPT09_MVPA_MASK_resliced4mm',...
+            'pattern','epi_d_hp_z_condensed_srch_1','thresh',5)
 		
         
         
