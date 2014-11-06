@@ -1,4 +1,4 @@
-function res = CM_run_mvpa_srch(subjArray, varargin)
+function [Subj res] = CM_run_mvpa_srch(subjArray, varargin)
 
 
 % this selector will be set up by cm_create_sl_selectors and its
