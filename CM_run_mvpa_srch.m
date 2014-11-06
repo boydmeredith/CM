@@ -31,10 +31,11 @@ for iSub = subjArray
 
 	fprintf('\n\nPrepping selectors for CM%03d...',iSub);
 	Subj = cm_create_sl_selectors(Subj);
+    
 	for iResIteration = 1:Expt.num_results_iter
 		new_active_trials = [];
 		if Expt.equate_number_of_trials_in_cond_1_and_2 
-			Subj = create_balanced_xvalid_selectors(Subj, 'conds',SL_SELECTOR_TO_USE);
+			Subj = create_balanced_xvalid_selectors_searchlight(Subj, 'conds',SL_SELECTOR_TO_USE);
 		end
 		nSelectors = length(find_group(Subj,'selector',[SL_SELECTOR_TO_USE '_bal']));
 		for iSelector = 1:nSelectors
