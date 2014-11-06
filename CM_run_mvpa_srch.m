@@ -89,8 +89,8 @@ for iSub = subjArray
             'epi_d_hp_z_condensed_srch_bottom200', ...
             200,'descending',false)
         
-        class_args.train_funct_name = 'train_plr';
-        class_args.test_funct_name = 'test_plr';
+        class_args.train_funct_name = 'train_pLR';
+        class_args.test_funct_name = 'test_pLR';
         class_args.penalty = 10;
         
         [Subj res.top200SlMask{iSub}] = cross_validation( ...
