@@ -47,7 +47,8 @@ for iSub = subjArray
 
 		if Expt.perform_second_round_of_zscoring
 			display('Performing second round of z-scoring');
-			Subj.patterns{5}.mat(:,active_trials) = zscore(Subj.patterns{5}.mat(:,active_trials)')';
+            pat_ix = get_number(Subj,'pattern','epi_d_hp_z_condensed');
+			Subj.patterns{pat_ix}.mat(:,active_trials) = zscore(Subj.patterns{pat_ix}.mat(:,active_trials)')';
 		end
 
 		srch_radius = Expt.srch_radius;
