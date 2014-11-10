@@ -13,10 +13,10 @@ if isempty(subj_array)
 end
 
 %% for every subject: preproc, classify & output results as specified
-for subNum=subj_array
+for iSub=subj_array
     tic;
     %load relevant info with CM_mvpa_params
-    [expt, classArgs, ~,  par] = CM_mvpa_params(subNum, 'ret');
+    [expt, classArgs, ~,  par] = CM_mvpa_params(iSub, 'ret');
     expt = acceptUserInput(expt, varargin);
     if isempty(nickname)
         condNamesStr = strrep(strjoin(expt.condNames),',','V');
@@ -29,15 +29,15 @@ for subNum=subj_array
     expt.saveName = [expt.saveName nickname];
 	    expt.impMapDirStr=[expt.dir '/mvpa_results/importance_maps/' expt.saveName];
 	    expt.roiFname = [expt.dir '/Masks/' expt.roiName]; % specific path to mask file
-	    if subj_array(1) == subNum
+	    if subj_array(1) == iSub
 		fprintf('\n\n\nPLEASE CHECK VERIFY THESE CLASSIFICATION PARAMETERS!\nContinuing in 10s...\n\n\n');
 		expt
 		pause(10)
 	    end
-	    fprintf('\n\nBeginning subject CM%03d...', subNum);
+	    fprintf('\n\nBeginning subject CM%03d...', iSub);
 	    
 	    %% load or create subj and temporally condense. load onsets to use as regressors and condense so that we have one per trial (instead of 1 per TR)
-	    subjId = sprintf(expt.subjIdFormat,subNum);
+	    subjId = sprintf(expt.subjIdFormat,iSub);
 	    thisMvpaDir = fullfile(expt.dir, subjId, expt.mvpaDirStr); % mvpa directory within each subject's folder (will be created below if it doesn't exist)
 	    onsetsFile = fullfile(thisMvpaDir, expt.onsetsFname);
 	    expt.scanfiles = vertcat(par.swascanfiles.(par.task));
@@ -126,7 +126,7 @@ for subNum=subj_array
 	    
 	    % manipulate runs based on which_traintest to set xvalid bins
 	    condensed_runs = subj.selectors{1}.mat(~restTp);
-	    res.subj{subNum}.penalty(1).nVox(1).weights(1).condensed_runs = condensed_runs;
+	    res.subj{iSub}.penalty(1).nVox(1).weights(1).condensed_runs = condensed_runs;
 	    condensed_runs = expt.which_traintest(condensed_runs);
 	    
 	    %modify nRuns now that we've altered to make the training and testing
@@ -243,8 +243,8 @@ for subNum=subj_array
 	        end
 		                    
                 %save results
-                res.subj{subNum}.penalty(1).nVox(1).weights(1).iter{currNumTotalIters} = results;
-                res.subj{subNum}.penalty(1).nVox(1).weights(1).expt{currNumTotalIters} = expt;
+                res.subj{iSub}.penalty(1).nVox(1).weights(1).iter{currNumTotalIters} = results;
+                res.subj{iSub}.penalty(1).nVox(1).weights(1).expt{currNumTotalIters} = expt;
                 res.subjArray = subj_array;
                 
                 
