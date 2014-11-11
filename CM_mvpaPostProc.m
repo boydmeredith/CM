@@ -49,7 +49,7 @@ for s=subjArray
     
 	ix = out.subs==s;
     
-    s_ix = find(s,subjArray);
+    s_ix = find(s==subjArray);
     
 	[res.auc(s_ix), res.far(s_ix,:), res.hr(s_ix,:)]= getAuc(out,ix,0);
 end
