@@ -74,7 +74,8 @@ expt.trnSubCondsToBal = {};
 expt.tstSubCondsToBal = {};
 
 expt.trsToAverageOver = [1 2 3 4 5 6];
-expt.trWeights = [0 0 .33 .34 .33 0];
+expt.trWeights_train = [0 0 .33 .34 .33 0];
+expt.trWeights_test = [0 0 .33 .34 .33 0];
 expt.nVox_thresh = 0;
 expt.subjIdFormat = 'CM%03d';
 expt.onsetsFname = 'mvpa_ons.mat';
@@ -86,6 +87,7 @@ expt.condNames = {'hit', 'cr'};
 expt.subjFname = fullfile(expt.dir, subj_id, expt.mvpaDirStr,[subj_id '_' expt.roiName '.mat']); %having this previously saved avoids time-consuming data extraction and preproc
 
 expt.srch_radius = 5;
+
 
 %% establish general parameters
 S.idxTr = [];
