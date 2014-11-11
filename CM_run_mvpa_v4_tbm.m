@@ -18,136 +18,138 @@ for iSub=subj_array
     %load relevant info with CM_mvpa_params
     [expt, classArgs, ~,  par] = CM_mvpa_params(iSub, 'ret');
     expt = acceptUserInput(expt, varargin);
-    if isempty(nickname)
-        condNamesStr = strrep(strjoin(expt.condNames),',','V');
-        trTeStr = strrep(num2str(expt.which_traintest),'  ','_');
-        trWStr = strrep(num2str(expt.trWeights),' ','_');
-	roiStr = regexprep(expt.roiName,'(\w*).*','$1');
-        nickname = sprintf('conds_%s_trTe%s_trW%s_roi%s',condNamesStr,trTeStr,trWStr,roiStr);
-
+    expt.acrossTrs = ismember(0,(expt.trWeights_train==expt.trWeights_test))
+    subjId = sprintf(expt.subjIdFormat,iSub);
+    expt.thisMvpaDir = fullfile(expt.dir, subjId, expt.mvpaDirStr);
+    expt = makeSaveName(expt, subjId, nickname);
+    
+    % tell the user what is happening
+    if subj_array(1) == iSub
+        fprintf('\n\n\nPLEASE CHECK VERIFY THESE CLASSIFICATION PARAMETERS!\nContinuing in 10s...\n\n\n');
+        display(expt)
+        pause(10)
     end
-    expt.saveName = [expt.saveName nickname];
-	    expt.impMapDirStr=[expt.dir '/mvpa_results/importance_maps/' expt.saveName];
-	    expt.roiFname = [expt.dir '/Masks/' expt.roiName]; % specific path to mask file
-	    if subj_array(1) == iSub
-		fprintf('\n\n\nPLEASE CHECK VERIFY THESE CLASSIFICATION PARAMETERS!\nContinuing in 10s...\n\n\n');
-		expt
-		pause(10)
-	    end
-	    fprintf('\n\nBeginning subject CM%03d...', iSub);
-	    
-	    %% load or create subj and temporally condense. load onsets to use as regressors and condense so that we have one per trial (instead of 1 per TR)
-	    subjId = sprintf(expt.subjIdFormat,iSub);
-	    thisMvpaDir = fullfile(expt.dir, subjId, expt.mvpaDirStr); % mvpa directory within each subject's folder (will be created below if it doesn't exist)
-	    onsetsFile = fullfile(thisMvpaDir, expt.onsetsFname);
-	    expt.scanfiles = vertcat(par.swascanfiles.(par.task));
-	    nScanFiles = length(expt.scanfiles);
-	    % dataImgsFile = fullfile(thisMvpaDir, expt.dataImgsToUse);
-	    %load(dataImgsFile); %loads predefined cell array called expt.scanfiles into memory
-	    load(onsetsFile); % load in your SPM-formatted onsets file (specifies onsets of each event time in seconds)
-	    
-	    expt.condCols = makeCondCols(expt, names);
-	    
-	    nRuns = nScanFiles/expt.numTpPerRun; %calculate the number of runs (allows script to work flexibly for subjects with missing runs)
-	    nCondsTotal = size(onsets,2); %onsets will have been loaded into workspace
-	    nConds = length(expt.condNames);
-	    nExamples = [];
-	    for i =1:nConds
-		nExamples(i) = length(onsets{expt.condCols(i)});
-	    end
-	    
-	    %if subj structure hasn't been created and saved, do data proc routine (load pattern, detrend, high-pass, filter, z-score)
-	    expt.subjFname = [thisMvpaDir '/' subjId '_' expt.roiName '_s8mm_wa.mat']; %having this previously saved avoids time-consuming data extraction and preproc
-	    if ~exist(expt.subjFname,'file'), subj = CM_mvpa_load_and_preprocess_raw_data(subjId, expt, nRuns, 1)
-	    else load(expt.subjFname)
-	    end
-	    nPatts = size(subj.patterns{end}.mat,2)
-	    
-	    assert(nScanFiles == nPatts);
-	    
-	    % initialize all_onsets matrix as conditions x timepoints
-	    condOnsets = zeros(nConds,nPatts);
-	    condensed_runs = [];
-	    
-	    for i = 1:nConds %convert from sec to TRs
-		condNum = expt.condCols(i);
-		time_idx = onsets{condNum}/expt.trSecs+1;% divide by trSecs and add 1 (first timepoint = 0 sec; first TR = 1)
-		condOnsets(i,time_idx) = 1;
-	    end
-	    
-	    %condense regressors: condOnsets matrix to one column per trial, instead of per TR
-	    restTp = (sum(condOnsets,1) == 0);
-	    condensedCondRegs = condOnsets(:,~restTp); %remove TRs that have 0's for all conditions i.e. rest timepoints
-	    
-	    % temporally condense data: select TRs of interest (to correspond with peak post-stim BOLD
-	    % response) and detect outliers if specified
-	    all_trials = sum(condOnsets,1); % vector of all trials
-	    for trNum = expt.trsToAverageOver
-		data_by_TR(trNum,:,:) = expt.trWeights(trNum)*subj.patterns{end}.mat(:,find(all_trials)+trNum-1);
-	    end
-	    temporally_condensed_data = squeeze(sum(data_by_TR(expt.trsToAverageOver,:,:),1));
-	    clear data_by_TR;
+    fprintf('\n\nBeginning subject CM%03d...', iSub);
+    
+    %% load or create subj and temporally condense. load onsets to use as regressors and condense so that we have one per trial (instead of 1 per TR)
+    % mvpa directory within each subject's folder (will be created below if it doesn't exist)
+    onsetsFile = fullfile(expt.thisMvpaDir, expt.onsetsFname);
+    expt.scanfiles = vertcat(par.swascanfiles.(par.task));
+    nScanFiles = length(expt.scanfiles);
+    expt.ons = load(onsetsFile); % load in your SPM-formatted onsets file (specifies onsets of each event time in seconds)
+    onsets = expt.ons.onsets;
+    
+    expt.condCols = makeCondCols(expt);
+    
+    nRuns = nScanFiles/expt.numTpPerRun; %calculate the number of runs (allows script to work flexibly for subjects with missing runs)
+    nCondsTotal = size(onsets,2);
+    
+    nConds = length(expt.condNames);
+    nExamples = [];
+    for i =1:nConds
+        nExamples(i) = length(onsets{expt.condCols(i)});
+    end
+    
+    %if subj structure hasn't been created and saved, do data proc routine (load pattern, detrend, high-pass, filter, z-score)
+    if ~exist(expt.subjFname,'file')
+        subj = CM_mvpa_load_and_preprocess_raw_data(subjId, expt, nRuns, 1)
+    else
+        load(expt.subjFname)
+    end
+    nPatts = size(subj.patterns{end}.mat,2)
+    
+    assert(nScanFiles == nPatts);
+    
+    % initialize all_onsets matrix as conditions x timepoints
+    condOnsets = zeros(nConds,nPatts);
+    condensed_runs = [];
+    
+    for i = 1:nConds %convert from sec to TRs
+        condNum = expt.condCols(i);
+        time_idx = onsets{condNum}/expt.trSecs+1;% divide by trSecs and add 1 (first timepoint = 0 sec; first TR = 1)
+        condOnsets(i,time_idx) = 1;
+    end
+    all_trials = sum(condOnsets,1);
+    restTp = (all_trials==0);    %condense regressors: condOnsets matrix to one column per trial, instead of per TR
 
-	    
-	    if expt.remove_artdetect_outliers
-		% Exclude trials determined to be outliers by custom ArtDetect script
-		% Guide to outlier file cell arrays... Movement thresholds: .2 .25 .3
-		% .35 .4 .4 .5 Global signal thresholds: 2 2.5 3 3.5 4 4.5 5
-		load([expt.dir '/outlier_indices/' subjId '_outlier_indices']); %load outlier indices
-		m_outliers = movement_outlier_trials{expt.artdetect_motion_thresh};  % remove trials with more than .35mm/TR of movement
-		gs_outliers = global_signal_outlier_trials{expt.artdetect_global_signal_thresh}; % remove trials with global signal change of +/- 3.5 SD from mean
-		combined_outliers = union(m_outliers,gs_outliers);
-		condensedCondRegs(:,combined_outliers) = 0;
-		display([num2str(length(m_outliers)) ' movement outlier trials flagged']);
-		display([num2str(length(gs_outliers)) ' global signal outlier trials flagged']);
-		display([num2str(length(combined_outliers)) ' total outlier trials excluded']);
-	    end
-	   
-	    if expt.remove_outlier_trials ~= 0
-		% on-the-fly outlier detection/removal;
-		mean_across_voxels = mean(temporally_condensed_data,1);
-		z_mean_across_voxels = zscore(mean_across_voxels);
-		upper_outliers = find(z_mean_across_voxels> expt.remove_outlier_trials);
-		lower_outliers = find(z_mean_across_voxels< -1 * expt.remove_outlier_trials);
-		all_outliers = union(upper_outliers,lower_outliers)
-		condensedCondRegs(:,all_outliers) = 0;
-	    end
-	    
-	    % assign conditions to train/test classifier on
-	    %assign conditions to balance classifier, if specified
-	    trnCondensedRegsToBal = ''; tstCondensedRegsToBal = '';
-	    if ~isempty(expt.trnSubCondsToBal)
-		trnCondensedRegsToBal = tbmvpaGetRegsOfInterest(condensedCondRegs, expt.trnSubCondsToBal, expt.condCols);
-		if ~isempty(expt.tstSubCondsToBal)
-		    tstCondensedRegsToBal = tbmvpaGetRegsOfInterest(condensedCondRegs, expt.tstSubCondsToBal, expt.condCols);
-		end
-	    end
-	    %xvalBins = tbmvpaSpecifyXvalBins(inputs)
-	    
-	    % manipulate runs based on which_traintest to set xvalid bins
-	    condensed_runs = subj.selectors{1}.mat(~restTp);
-	    res.subj{iSub}.penalty(1).nVox(1).weights(1).condensed_runs = condensed_runs;
-	    condensed_runs = expt.which_traintest(condensed_runs);
-	    
-	    %modify nRuns now that we've altered to make the training and testing
-	    %sets
-	    nRuns = length(unique(nonzeros(condensed_runs)));
-	    
-	    %% For num full iterations: use loaded subj patterns, resulting temporally condensed data, and regressors (condensed to one value per trial)
-	    subj_original = subj; % backup the subj structure before entering loop
-	    condensedCondRegsOrig = condensedCondRegs; % backup condensed_regs_all before entering k-loop
-	    results = cell(expt.num_full_iter*expt.num_results_iter*expt.num_iter_with_same_data,1); %preallocate results
-	    currNumTotalIters = 0;  %initialize counter (gets incremented during each classification run-through)
-	    for fullIterNum = 1:expt.num_full_iter
-		%restore from backups
-		subj = subj_original;
-		condensedCondRegs = condensedCondRegsOrig;
-		
-		%% Set up regressors and selectors. perform feature selection
-		% initialize regressors object
-		subj = init_object(subj,'regressors','conds');
-		subj = set_mat(subj,'regressors','conds',condensedCondRegs);
-		subj = set_objfield(subj,'regressors','conds','condnames',expt.condNames);
+    expt.meta_runs = expt.which_traintest(subj.selectors{1}.mat);
+    expt.meta_runs(restTp) = 0;
+         
+    condensedCondRegs = condOnsets(:,expt.meta_runs~=0); %remove TRs that have 0's for all conditions i.e. rest timepoints
+    
+    % manipulate runs based on which_traintest to set xvalid bins
+    condensed_runs = subj.selectors{1}.mat(expt.meta_runs~=0);
+    res.subj{iSub}.penalty(1).nVox(1).weights(1).condensed_runs = condensed_runs;
+    condensed_runs = expt.which_traintest(condensed_runs);
+    
+    % temporally condense data: select TRs of interest (to correspond with peak post-stim BOLD
+    % response) and detect outliers if specified
+    if expt.acrossTrs
+        isOneTrainGroupOneTestGroup = (nanmean(ismember(expt.which_traintest,[0 1 2]))==1);
+        assert(isOneTrainGroupOneTestGroup);
+        expt.meta_runs_train = find(expt.meta_runs==1);
+        expt.meta_runs_test = find(expt.meta_runs==2);
+    else
+       expt.meta_runs_train = find(all_trials);
+       expt.meta_runs_test = [];
+    end
+    
+    [temporally_condensed_data] = temporallyCondenseData(subj, expt);
+    
+    if expt.remove_artdetect_outliers
+        % Exclude trials determined to be outliers by custom ArtDetect script
+        % Guide to outlier file cell arrays... Movement thresholds: .2 .25 .3
+        % .35 .4 .4 .5 Global signal thresholds: 2 2.5 3 3.5 4 4.5 5
+        load([expt.dir '/outlier_indices/' subjId '_outlier_indices']); %load outlier indices
+        m_outliers = movement_outlier_trials{expt.artdetect_motion_thresh};  % remove trials with more than .35mm/TR of movement
+        gs_outliers = global_signal_outlier_trials{expt.artdetect_global_signal_thresh}; % remove trials with global signal change of +/- 3.5 SD from mean
+        combined_outliers = union(m_outliers,gs_outliers);
+        condensedCondRegs(:,combined_outliers) = 0;
+        display([num2str(length(m_outliers)) ' movement outlier trials flagged']);
+        display([num2str(length(gs_outliers)) ' global signal outlier trials flagged']);
+        display([num2str(length(combined_outliers)) ' total outlier trials excluded']);
+    end
+    
+    if expt.remove_outlier_trials ~= 0
+        % on-the-fly outlier detection/removal;
+        mean_across_voxels = mean(temporally_condensed_data,1);
+        z_mean_across_voxels = zscore(mean_across_voxels);
+        upper_outliers = find(z_mean_across_voxels> expt.remove_outlier_trials);
+        lower_outliers = find(z_mean_across_voxels< -1 * expt.remove_outlier_trials);
+        all_outliers = union(upper_outliers,lower_outliers)
+        condensedCondRegs(:,all_outliers) = 0;
+    end
+    
+    % assign conditions to train/test classifier on
+    %assign conditions to balance classifier, if specified
+    trnCondensedRegsToBal = ''; tstCondensedRegsToBal = '';
+    if ~isempty(expt.trnSubCondsToBal)
+        trnCondensedRegsToBal = tbmvpaGetRegsOfInterest(condensedCondRegs, expt.trnSubCondsToBal, expt.condCols);
+        if ~isempty(expt.tstSubCondsToBal)
+            tstCondensedRegsToBal = tbmvpaGetRegsOfInterest(condensedCondRegs, expt.tstSubCondsToBal, expt.condCols);
+        end
+    end
+    %xvalBins = tbmvpaSpecifyXvalBins(inputs)
+    
+    %modify nRuns now that we've altered to make the training and testing
+    %sets
+    nRuns = length(unique(nonzeros(condensed_runs)));
+    
+    %% For num full iterations: use loaded subj patterns, resulting temporally condensed data, and regressors (condensed to one value per trial)
+    subj_original = subj; % backup the subj structure before entering loop
+    condensedCondRegsOrig = condensedCondRegs; % backup condensed_regs_all before entering k-loop
+    results = cell(expt.num_full_iter*expt.num_results_iter*expt.num_iter_with_same_data,1); %preallocate results
+    currNumTotalIters = 0;  %initialize counter (gets incremented during each classification run-through)
+    for fullIterNum = 1:expt.num_full_iter
+        %restore from backups
+        subj = subj_original;
+        condensedCondRegs = condensedCondRegsOrig;
+        
+        %% Set up regressors and selectors. perform feature selection
+        % initialize regressors object
+        subj = init_object(subj,'regressors','conds');
+        subj = set_mat(subj,'regressors','conds',condensedCondRegs);
+        subj = set_objfield(subj,'regressors','conds','condnames',expt.condNames);
         % add new condensed activation pattern
         subj = duplicate_object(subj,'pattern','epi_d_hp_z','epi_d_hp_z_condensed');
         subj = set_mat(subj,'pattern','epi_d_hp_z_condensed',temporally_condensed_data,'ignore_diff_size',true);
@@ -196,7 +198,7 @@ for iSub=subj_array
             active_trials = active_trials_prebalancing;
             new_active_trials =[];
             new_actives_selector= zeros(1,size(condensedCondRegs,2));
-          
+            
             if expt.equate_number_of_trials_in_cond_1_and_2 == 1
                 % balance the number of Class 1..N trials within run,
                 % exclude random subsets of trials from each run
@@ -217,7 +219,7 @@ for iSub=subj_array
                 subj.patterns{5}.mat(:,active_trials) = zscore(subj.patterns{5}.mat(:,active_trials)')';
                 display('Performing second round of z-scoring')
             end
-           
+            
             if expt.optimize_penalty_param && currNumTotalIters == 0 % find empirically optimal penalty via nested cross-validation
                 %run this function during the first pass through; use
                 %resulting value for subsequent classifications
@@ -239,9 +241,9 @@ for iSub=subj_array
                 
                 if expt.generate_importance_maps
                     %store relevant data for creating importance maps later
-		    results_IW{currNumTotalIters} = record_weights(results, nRuns, classArgs);
-	        end
-		                    
+                    results_IW{currNumTotalIters} = record_weights(results, nRuns, classArgs);
+                end
+                
                 %save results
                 res.subj{iSub}.penalty(1).nVox(1).weights(1).iter{currNumTotalIters} = results;
                 res.subj{iSub}.penalty(1).nVox(1).weights(1).expt{currNumTotalIters} = expt;
@@ -252,13 +254,13 @@ for iSub=subj_array
         end
     end
     
-   if isempty(expt.xval_iters_for_imp_map)  
-	expt.xval_iters_for_imp_map = 1:nRuns;
-   end
-
+    if isempty(expt.xval_iters_for_imp_map)
+        expt.xval_iters_for_imp_map = 1:nRuns;
+    end
+    
     if expt.generate_importance_maps
-	if ~exist(expt.impMapDirStr)
-	    mkdir(expt.impMapDirStr);
+        if ~exist(expt.impMapDirStr)
+            mkdir(expt.impMapDirStr);
         end
         generateImportanceMaps(classArgs, subjId, expt, subj, results,results_IW, nRuns);
     end
@@ -270,7 +272,7 @@ for iSub=subj_array
     clear subj
 end
 if expt.generate_importance_maps
-	write_mean_imp_map(expt);
+    write_mean_imp_map(expt);
 end
 if ~(exist(expt.group_mvpa_dir))
     mkdir(expt.group_mvpa_dir);
@@ -280,34 +282,35 @@ save(fullfile(expt.group_mvpa_dir, [expt.saveName '.mat']), 'res');
 end
 
 function write_mean_imp_map(expt)
-	cd(expt.impMapDirStr);
-	for c = 1:length(expt.condNames)
-		dfn = dir(fullfile(expt.impMapDirStr, ['*' expt.condNames{c} '*']));
-		fn = {dfn.name};
-		if length(fn) > length(expt.subj_array), break, end;
-		out_name = regexprep(fn{1},'CM\d*','mean');
-		spm_imcalc_ui(fn,out_name,'mean(X)',{1,[],[],[]});
-
-	end
+cd(expt.impMapDirStr);
+for c = 1:length(expt.condNames)
+    dfn = dir(fullfile(expt.impMapDirStr, ['*' expt.condNames{c} '*']));
+    fn = {dfn.name};
+    if length(fn) > length(expt.subj_array), break, end;
+    out_name = regexprep(fn{1},'CM\d*','mean');
+    spm_imcalc_ui(fn,out_name,'mean(X)',{1,[],[],[]});
+    
+end
 end
 
 function results_IW = record_weights(results, nRuns, classArgs)
 for rif = 1:nRuns
-	switch classArgs.train_funct_name
-	case 'train_pLR'
-		this_scratch = results.iterations(rif).scratchpad.weights';
-	otherwise
-		display('Whoops, don''t know how to archive those feature weights');
-	end
-	results_IW.iterations(rif).scratchpad.net.IW{1} = this_scratch;
-end        
+    switch classArgs.train_funct_name
+        case 'train_pLR'
+            this_scratch = results.iterations(rif).scratchpad.weights';
+        otherwise
+            display('Whoops, don''t know how to archive those feature weights');
+    end
+    results_IW.iterations(rif).scratchpad.net.IW{1} = this_scratch;
+end
 end
 
 function expt = acceptUserInput(expt,  args)
 %% allows user to make changes from the parameters specified in CM_mvpa_params without having to change everything every time
 p = inputParser;
 p.addParamValue('roiName', expt.roiName, @(x) ischar(x));
-p.addParamValue('trWeights', expt.trWeights, @(x) isnumeric(x));
+p.addParamValue('trWeights_train', expt.trWeights_train, @(x) isnumeric(x));
+p.addParamValue('trWeights_test', expt.trWeights_test, @(x) isnumeric(x));
 p.addParamValue('which_traintest', expt.which_traintest, @(x) isnumeric(x));
 p.addParamValue('condNames', expt.condNames, @(x) iscell(x));
 p.addParamValue('trnSubCondsToBal', expt.trnSubCondsToBal, @(x) iscell(x) || ischar(x));
@@ -322,11 +325,11 @@ end
 
 
 %% sets the indices of the conditions that need to be examined
-function condCols = makeCondCols(expt, names)
+function condCols = makeCondCols(expt)
 condCols = zeros(1,length(expt.condNames));
 for i = 1:length(condCols)
     thisName = expt.condNames{i};
-    condCols(i) = find(ismember(names,thisName));
+    condCols(i) = find(ismember(expt.ons.names,thisName));
 end
 end
 
@@ -379,7 +382,47 @@ for condNum=1:length(expt.condNames)
 end
 
 
+
+
+
 end
 
 
+function expt = makeSaveName(expt, subjId, nickname)
+
+if isempty(nickname)
+    condNamesStr = strrep(strjoin(expt.condNames),',','V');
+    trTeStr = strrep(num2str(expt.which_traintest),'  ','_');
+    trWStr_tr = strrep(num2str(expt.trWeights_train),' ','_');
+    trWStr_te = strrep(num2str(expt.trWeights_test),' ','_');
+    trWStr = ['tr' trWStr_tr '_te' trWStr_te];
+    roiStr = regexprep(expt.roiName,'(\w*).*','$1');
+    nickname = sprintf('conds_%s_trTe%s_trW%s_roi%s',condNamesStr,trTeStr,trWStr,roiStr);
+    
+end
+expt.saveName = [expt.saveName nickname];
+expt.impMapDirStr=[expt.dir '/mvpa_results/importance_maps/' expt.saveName];
+expt.roiFname = [expt.dir '/Masks/' expt.roiName]; % specific path to mask file
+expt.subjFname = [expt.thisMvpaDir '/' subjId '_' expt.roiName '_s8mm_wa.mat']; %having this previously saved avoids time-consuming data extraction and preproc
+
+end
+
+
+function temporally_condensed_data = temporallyCondenseData(subj, expt)
+data_by_TR_train=[];
+data_by_TR_test=[];
+
+for iTr = expt.trsToAverageOver
+    data_by_TR_train(iTr,:,:) = expt.trWeights_train(iTr)*subj.patterns{end}.mat(:,expt.meta_runs_train+iTr-1);
+    data_by_TR_test(iTr,:,:) = expt.trWeights_test(iTr)*subj.patterns{end}.mat(:,expt.meta_runs_test+iTr-1);
+    
+end
+
+temporally_condensed_data_train = squeeze(sum(data_by_TR_train(expt.trsToAverageOver,:,:),1));
+clear data_by_TR_train;
+temporally_condensed_data_test = squeeze(sum(data_by_TR_test(expt.trsToAverageOver,:,:),1));
+clear data_by_TR_test;
+temporally_condensed_data = horzcat(temporally_condensed_data_train, temporally_condensed_data_test);
+
+end
 
