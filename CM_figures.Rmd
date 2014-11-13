@@ -2,6 +2,27 @@
 title: "CM mvpa analysis"
 output: html_document
 ---
+This document will contain the figures we publish in our countermeasures manuscript.
+#Figure 1 #Figure 2 #Figure 3 #Figure 4
+#Figure 5. Accuracy, confidence, d'
+This should depict classification accuracy by confidence for ex>ex and ex>cm in 'late' trs, as well as tr 3
+Try: 
+-accuracy by confidence
+-accuracy by confidence bin
+-accuracy by d'
+#Figure 6. Violins!
+#Figure 7. Tr Sweep!
+
+
+
+
+
+
+
+
+
+
+
 ```{r}
 require(gridExtra)
 library(ggplot2)
