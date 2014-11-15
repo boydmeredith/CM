@@ -20,27 +20,39 @@ plotformat=theme(title= element_text(face="bold",size=15),axis.title = element_t
 
 Now, we'll grab an important bit of behavioral data that will get a lot of use.  
 
-```{r load_behav_dat}
-behav_dat_file = "~/fMRI/COUNTERMEASURES/Data/Behavioral/cm_behav_to_r.csv"
+```{r load_data, echo=FALSE}
+dir = "~/cm/Scripts/"
+behav_dat_file = sprintf("%s/results_sheets/cm_behav_to_r.csv",dir)
+mvpa_dat_file = sprintf("%s/results_sheets/aucSummaryToR__exex_excm_cmcm_hitvcr.csv",dir)
+
 behav_df = read.csv(behav_dat_file, header=T)
-```
-
-And the growing mvpa data
-
-```{r load_mvpa_dat}
-mvpa_dat_file = "~/fMRI/COUNTERMEASURES/Data/Functional/mvpa_results/aucSummaryToR__exex_excm_cmcm_hitvcr.csv"
 mvpa_df = read.csv(mvpa_dat_file, header=T)
 ```
 
 #Figure 1 #Figure 2 #Figure 3 #Figure 4
 #Figure 5. Accuracy, confidence, d'
-This should depict classification accuracy by confidence for ex>ex and ex>cm in 'late' trs, as well as tr 3
+##A. AUC by Confidence EX>CM late, EX>EX late, EX>CM tr 3
 We'll try looking at:
--accuracy by confidence
--accuracy by confidence bin
--accuracy by d'
-Here goes
+- accuracy by confidence
+- accuracy by confidence bin
+```{r load_this_mvpa_dat}
+mvpa_extocm_tr3_file = sprintf("%s/results_sheets/xvals2_runsrepotred_conds_hitVcr_trTe1_1_1_1_2_2_2_2_trW0__0__1__0__0__0_roiSEPT09_MVPA_MASK_resliced4mm.csv",dir) 
+mvpa_extocm_late_file = sprintf("%s/results_sheets/xvals2_runsrepotred_conds_hitVcr_trTe1_1_1_1_2_2_2_2_trWtr0___________0________0.33________0.34________0.33___________0_te0___________0________0.33________0.34________0.33___________0_roiSEPT09_MVPA_MASK_resliced4mm.csv",dir) 
+mvpa_ex_late_file = sprintf("%s/results_sheets/xvals_runsrepotred_conds_hitVcr_trTe1_2_3_4_0_0_0_0_trW0___________0________0.33________0.34________0.33___________0_roiSEPT09_MVPA_MASK_resliced4mm.csv",dir) 
 
+mvpa_extocm_tr3_df = read.csv(mvpa_extocm_tr3_file, header=T)
+mvpa_extocm_late_df = read.csv(mvpa_extocm_late_file, header=T)
+mvpa_ex_late_df = read.csv(mvpa_ex_late_file, header=T)
+```
+
+```{r plot accuracy by confidence}
+qplot(correctsVec,actsVec,data=mvpa_extocm_tr3_file)
+
+
+
+
+
+##B. EX>CM TR3 AUC by CM d'
 ```{r cm d prime vs ex>cm tr 3}
 excmtr3 = mvpa_df[mvpa_df$tr==3 & mvpa_df$train_test=="EX>CM",]
 excmtr3$cm_d = behav_df$cm_d
