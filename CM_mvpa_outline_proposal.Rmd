@@ -20,8 +20,9 @@ plotformat=theme(title= element_text(face="bold",size=15),axis.title = element_t
 ```
 
 ```{r load_data, echo=FALSE}
-behav_dat_file = "~/fMRI/COUNTERMEASURES/Data/Behavioral/cm_behav_to_r.csv"
-mvpa_dat_file = "~/fMRI/COUNTERMEASURES/Data/Functional/mvpa_results/aucSummaryToR__exex_excm_cmcm_hitvcr.csv"
+dir = "~/cm/Scripts/"
+behav_dat_file = sprintf("%s/results_sheets/cm_behav_to_r.csv",dir)
+mvpa_dat_file = sprintf("%s/results_sheets/aucSummaryToR__exex_excm_cmcm_hitvcr.csv",dir)
 
 behav_df = read.csv(behav_dat_file, header=T)
 mvpa_df = read.csv(mvpa_dat_file, header=T)
