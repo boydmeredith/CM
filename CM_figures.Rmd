@@ -14,33 +14,101 @@ library(ggplot2)
 Then, we'll setup our plot environments
 ```{r}
 cbPalette <- c( "#56B4E9","#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7","#999999", "#E69F00")
-fiftyline=stat_abline(intercept=.5,slope=0,linetype="dashed")
+fiftyline=stat_abline(intercept=.5,slope=0,linetype="dashed",color='black',size=1)
 plotformat=theme(title= element_text(face="bold",size=15),axis.title = element_text(face="bold",size=14),axis.text=element_text(size=13))
 ```
 
 Now, we'll grab an important bit of behavioral data that will get a lot of use.  
 
-```{r load_behav_dat}
-behav_dat_file = "~/fMRI/COUNTERMEASURES/Data/Behavioral/cm_behav_to_r.csv"
+```{r load_data, echo=FALSE}
+dir = "~/cm/Scripts/"
+behav_dat_file = sprintf("%s/results_sheets/cm_behav_to_r.csv",dir)
+mvpa_dat_file = sprintf("%s/results_sheets/aucSummaryToR__exex_excm_cmcm_hitvcr.csv",dir)
+
 behav_df = read.csv(behav_dat_file, header=T)
-```
-
-And the growing mvpa data
-
-```{r load_mvpa_dat}
-mvpa_dat_file = "~/fMRI/COUNTERMEASURES/Data/Functional/mvpa_results/aucSummaryToR__exex_excm_cmcm_hitvcr.csv"
 mvpa_df = read.csv(mvpa_dat_file, header=T)
 ```
 
 #Figure 1 #Figure 2 #Figure 3 #Figure 4
 #Figure 5. Accuracy, confidence, d'
-This should depict classification accuracy by confidence for ex>ex and ex>cm in 'late' trs, as well as tr 3
+##A. AUC by Confidence EX>CM late, EX>EX late, EX>CM tr 3
 We'll try looking at:
--accuracy by confidence
--accuracy by confidence bin
--accuracy by d'
-Here goes
+- accuracy by confidence
+- accuracy by confidence bin
+```{r load_this_mvpa_dat}
+mvpa_extocm_tr3_file = sprintf("%s/results_sheets/xvals2_runsrepotred_conds_hitVcr_trTe1_1_1_1_2_2_2_2_trW0__0__1__0__0__0_roiSEPT09_MVPA_MASK_resliced4mm.csv",dir) 
+mvpa_extocm_late_file = sprintf("%s/results_sheets/xvals2_runsrepotred_conds_hitVcr_trTe1_1_1_1_2_2_2_2_trWtr0___________0________0.33________0.34________0.33___________0_te0___________0________0.33________0.34________0.33___________0_roiSEPT09_MVPA_MASK_resliced4mm.csv",dir) 
+mvpa_ex_late_file = sprintf("%s/results_sheets/xvals_runsrepotred_conds_hitVcr_trTe1_2_3_4_0_0_0_0_trW0___________0________0.33________0.34________0.33___________0_roiSEPT09_MVPA_MASK_resliced4mm.csv",dir) 
 
+mvpa_extocm_tr3_df = read.csv(mvpa_extocm_tr3_file, header=T)
+mvpa_extocm_tr3_df$name = 'extocm_tr3'
+mvpa_extocm_late_df = read.csv(mvpa_extocm_late_file, header=T)
+mvpa_extocm_late_df$name = 'extocm_late'
+mvpa_ex_late_df = read.csv(mvpa_ex_late_file, header=T)
+mvpa_ex_late_df$name = 'extoex_late'
+confbyacc_df = rbind(mvpa_extocm_tr3_df,mvpa_extocm_late_df,mvpa_ex_late_df)
+```
+
+```{r plot accuracy by confidence}
+qplot(abs(actsVec-.5),correctsVec,data=confbyacc_df,group=name,color=name,geom='smooth',size=.5)+fiftyline+theme_bw()+plotformat+labs(y=expression("p(classifier correct)"),x=expression("confidence = |p(hit)-.5|"),title="Classifier Accuracy by Confidence")+geom_point(alpha=.05,position=position_jitter(width=0,height=.1))
+
+```
+
+
+```{r build confidence bins, cache = T}
+confbyacc_sorted_df = confbyacc_df[with(confbyacc_df, order(name, subs, -abs(actsVec-.5))),]
+acc = numeric(0)
+subj_num = integer(0)
+mvpa_name = character(0)
+bin_name = character(0)
+bin_num=numeric(0)
+  
+bins =seq(1,.05,-.05)
+
+names = unique(confbyacc_sorted_df$name)
+x=0
+for (iname in 1:length(names)){
+  this_name = names[iname]
+  for (jsub in unique(confbyacc_sorted_df$subs)){
+    ntrials = length(with(confbyacc_sorted_df, confbyacc_sorted_df[subs==jsub & name==this_name, "subs"]))
+    for (acc_bin in seq(1,20)){
+      x=x+1
+      included_trial_inds = 1:ceiling(ntrials * bins[acc_bin])
+      mvpa_name[x]=this_name
+      subj_num[x]=jsub
+      bin_name[x] = sprintf('top %s%%',bins[acc_bin]*100)
+      bin_num[x]=acc_bin
+      acc[x] = with(subset(confbyacc_sorted_df,name==this_name & subs==jsub),mean(correctsVec[included_trial_inds]))
+    }
+  }
+}
+
+weirdlybinnedaccconf_df = data.frame(sub = subj_num,name = mvpa_name, acc=acc, bin_name=bin_name, bin_num=bin_num)
+
+weirdlybinnedaccconf_df$bin_name = factor(weirdlybinnedaccconf_df$bin_name,
+                                      levels=(weirdlybinnedaccconf_df$bin_name[1:20]))
+
+```
+```{r plot weird accuracy by confidence}
+
+confacc_ag<-ddply(weirdlybinnedaccconf_df,c("bin_num","name"),summarise,N=length(acc),mean_acc=mean(acc),sd_acc = sd(acc), sem_acc=sd_acc/sqrt(N), min_acc = mean_acc-sem_acc, max_acc = mean_acc+sem_acc)
+
+model<- lm(acc~bin_num*name,data=weirdlybinnedaccconf_df)
+grid <- with(weirdlybinnedaccconf_df, expand.grid(
+  name = levels(name),
+  bin_num = bin_num
+))
+grid$acc<-stats::predict(model,newdata=grid)
+
+
+ confacc_plt<-ggplot(weirdlybinnedaccconf_df,aes(x=bin_num,y=acc,group=name,color=name))+theme_bw()+theme(axis.text.x  = element_text(angle=45, vjust=0.5, size=16))+plotformat+labs(x='percentile confidence bin',y=expression("p(classifier correct)"),title="Classifier accuracy by confidence")
+
+confacc_plt+geom_pointrange(data=confacc_ag,aes(x=bin_num,y=mean_acc,ymin=min_acc,ymax=max_acc),size=.85)+  geom_line(data=grid,size=.75) + scale_x_continuous(labels=weirdlybinnedaccconf_df$bin_name[seq(1,20,2)],breaks=seq(1,20,2))+scale_color_discrete(breaks=c("extocm_late","extocm_tr3","extoex_late"),labels=c("EX>CM, late TRs", "EX>CM, 3rd TR","EX, 4fold, late TRs"),name='Classifier')
+
+confacc_plt+geom_pointrange(data=confacc_ag,aes(x=bin_num,y=mean_acc,ymin=min_acc,ymax=max_acc),size=.85)+  geom_line(aes(x=bin_num,y=mean_acc),data=confacc_ag,size=.75) + scale_x_continuous(labels=weirdlybinnedaccconf_df$bin_name[seq(1,20,2)],breaks=seq(1,20,2))+scale_color_discrete(breaks=c("extocm_late","extocm_tr3","extoex_late"),labels=c("EX>CM, late TRs", "EX>CM, 3rd TR","EX, 4fold, late TRs"),name='Classifier')
+```
+
+##B. EX>CM TR3 AUC by CM d'
 ```{r cm d prime vs ex>cm tr 3}
 excmtr3 = mvpa_df[mvpa_df$tr==3 & mvpa_df$train_test=="EX>CM",]
 excmtr3$cm_d = behav_df$cm_d
