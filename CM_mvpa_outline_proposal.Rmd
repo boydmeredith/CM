@@ -1,0 +1,42 @@
+---
+title: "CM_mvpa_outline_proposal"
+author: "Tyler Boyd-Meredith"
+date: "November 14, 2014"
+output: 
+  html_document:
+    toc: true
+---
+Proposal for outlining the mvpa section of the countermeasures manuscript.
+
+```{r setup, echo=FALSE}
+#packages
+require(gridExtra)
+require(plyr)
+library(ggplot2)
+#plot environment
+cbPalette <- c( "#56B4E9","#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7","#999999", "#E69F00")
+fiftyline=stat_abline(intercept=.5,slope=0,linetype="dashed")
+plotformat=theme(title= element_text(face="bold",size=15),axis.title = element_text(face="bold",size=14),axis.text=element_text(size=13))
+```
+
+```{r load_data, echo=FALSE}
+behav_dat_file = "~/fMRI/COUNTERMEASURES/Data/Behavioral/cm_behav_to_r.csv"
+mvpa_dat_file = "~/fMRI/COUNTERMEASURES/Data/Functional/mvpa_results/aucSummaryToR__exex_excm_cmcm_hitvcr.csv"
+
+behav_df = read.csv(behav_dat_file, header=T)
+mvpa_df = read.csv(mvpa_dat_file, header=T)
+```
+
+Our question is: do countermeasures impact the ability to detect memory
+#Is there signal?
+First, we need to know if there is a signal discriminating hits from crs in each of our tasks. To answer this, we look at performance of two memory classifiers (hits v crs). One using 4-fold cross-validation in the explicit task, the other using the same procedure in the concealed memory task. <br>
+**Predictions**:
+-EX task: mean auc significantly above chance (but slightly lower than in Risman PNAS where depth of processing was likely greater at retrieval due to differences in instructions)
+-CM task: mean auc significantly above chance (and higher than EX task because: a. subjects were instructed to hold stimulus in mind, b. attend and generate task are very stereotyped and map onto hit v cr discrimination)
+-Weight/Importance maps will show that each classifier is relying on different information to distinguish hits from crs (prediction based on univariate maps and differences in task instructions)
+
+#Is it usable in both tasks?
+**Predictions**:
+-In late trs, we will see performance at chance
+-In tr-by-tr, we will see above chance performance early
+-In Roi analyses, we will see above chance performance in ips and below chance in ang
