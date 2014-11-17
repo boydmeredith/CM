@@ -3,22 +3,28 @@ title: "CM mvpa analysis"
 output: html_document
 ---
 This document will contain the figures we publish in our countermeasures manuscript.
-First off, let's load some packages.
-```{r load_packages}
-require(gridExtra)
-require(plyr)
-library(ggplot2)
 
+First off, we'll need to load the packages we plan to use.
+```{r load_packages}
+require(plyr) #allows us to summarize data along dimensions we care about
+library(ggplot2) #ggplot! our favorite plotting tool
+require(gridExtra) #allows arrangement of figures in grids
 ```
 
-Then, we'll setup our plot environments
+Then, we'll setup some variables that we'll use to control how our plots look.
+
 ```{r}
+#the color blind compatible palette we'll use for our colors
 cbPalette <- c( "#56B4E9","#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7","#999999", "#E69F00")
+
+#a dashed horizontal line to represent chance for binary classifiers
 fiftyline=stat_abline(intercept=.5,slope=0,linetype="dashed",color='black',size=1)
+
+#specify font size and face for axis labels and title
 plotformat=theme(title= element_text(face="bold",size=15),axis.title = element_text(face="bold",size=14),axis.text=element_text(size=13))
 ```
 
-Now, we'll grab an important bit of behavioral data that will get a lot of use.  
+Now that we've got that setup, we'll grab the data that we plan to use a bunch from our 'results_sheets' directory.
 
 ```{r load_data, echo=FALSE}
 dir = "~/cm/Scripts/"
@@ -89,6 +95,7 @@ weirdlybinnedaccconf_df$bin_name = factor(weirdlybinnedaccconf_df$bin_name,
                                       levels=(weirdlybinnedaccconf_df$bin_name[1:20]))
 
 ```
+
 ```{r plot weird accuracy by confidence}
 
 confacc_ag<-ddply(weirdlybinnedaccconf_df,c("bin_num","name"),summarise,N=length(acc),mean_acc=mean(acc),sd_acc = sd(acc), sem_acc=sd_acc/sqrt(N), min_acc = mean_acc-sem_acc, max_acc = mean_acc+sem_acc)
