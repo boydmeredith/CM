@@ -47,11 +47,13 @@ mvpa_extocm_late_file = sprintf("%s/results_sheets/xvals2_runsrepotred_conds_hit
 mvpa_ex_late_file = sprintf("%s/results_sheets/xvals_runsrepotred_conds_hitVcr_trTe1_2_3_4_0_0_0_0_trW0___________0________0.33________0.34________0.33___________0_roiSEPT09_MVPA_MASK_resliced4mm.csv",dir) 
 
 mvpa_extocm_tr3_df = read.csv(mvpa_extocm_tr3_file, header=T)
-mvpa_extocm_tr3_df$name = 'extocm_tr3'
 mvpa_extocm_late_df = read.csv(mvpa_extocm_late_file, header=T)
-mvpa_extocm_late_df$name = 'extocm_late'
 mvpa_ex_late_df = read.csv(mvpa_ex_late_file, header=T)
+
+mvpa_extocm_tr3_df$name = 'extocm_tr3'
+mvpa_extocm_late_df$name = 'extocm_late'
 mvpa_ex_late_df$name = 'extoex_late'
+
 confbyacc_df = rbind(mvpa_extocm_tr3_df,mvpa_extocm_late_df,mvpa_ex_late_df)
 ```
 
@@ -113,6 +115,13 @@ grid$acc<-stats::predict(model,newdata=grid)
 confacc_plt+geom_pointrange(data=confacc_ag,aes(x=bin_num,y=mean_acc,ymin=min_acc,ymax=max_acc),size=.85)+  geom_line(data=grid,size=.75) + scale_x_continuous(labels=weirdlybinnedaccconf_df$bin_name[seq(1,20,2)],breaks=seq(1,20,2))+scale_color_discrete(breaks=c("extocm_late","extocm_tr3","extoex_late"),labels=c("EX>CM, late TRs", "EX>CM, 3rd TR","EX, 4fold, late TRs"),name='Classifier')
 
 confacc_plt+geom_pointrange(data=confacc_ag,aes(x=bin_num,y=mean_acc,ymin=min_acc,ymax=max_acc),size=.85)+  geom_line(aes(x=bin_num,y=mean_acc),data=confacc_ag,size=.75) + scale_x_continuous(labels=weirdlybinnedaccconf_df$bin_name[seq(1,20,2)],breaks=seq(1,20,2))+scale_color_discrete(breaks=c("extocm_late","extocm_tr3","extoex_late"),labels=c("EX>CM, late TRs", "EX>CM, 3rd TR","EX, 4fold, late TRs"),name='Classifier')
+```
+mvpa_extocm_late_df = read.csv(mvpa_extocm_late_file, header=T)
+mvpa_ex_late_df = read.csv(mvpa_ex_late_file, header=T)
+```
+
+```{r plot accuracy by confidence}
+qplot(correctsVec,actsVec,data=mvpa_extocm_tr3_file)
 ```
 
 ##B. EX>CM TR3 AUC by CM d'
