@@ -109,19 +109,14 @@ grid <- with(weirdlybinnedaccconf_df, expand.grid(
 ))
 grid$acc<-stats::predict(model,newdata=grid)
 
-
- confacc_plt<-ggplot(weirdlybinnedaccconf_df,aes(x=bin_num,y=acc,group=name,color=name))+theme_bw()+theme(axis.text.x  = element_text(angle=45, vjust=0.5, size=16))+plotformat+labs(x='percentile confidence bin',y=expression("p(classifier correct)"),title="Classifier accuracy by confidence")
+confacc_plt<-ggplot(weirdlybinnedaccconf_df,aes(x=bin_num,y=acc,group=name,color=name))+theme_bw()+theme(axis.text.x  = element_text(angle=45, vjust=0.5, size=16))+plotformat+labs(x='percentile confidence bin',y=expression("p(classifier correct)"),title="Classifier accuracy by confidence")
 
 confacc_plt+geom_pointrange(data=confacc_ag,aes(x=bin_num,y=mean_acc,ymin=min_acc,ymax=max_acc),size=.85)+  geom_line(data=grid,size=.75) + scale_x_continuous(labels=weirdlybinnedaccconf_df$bin_name[seq(1,20,2)],breaks=seq(1,20,2))+scale_color_discrete(breaks=c("extocm_late","extocm_tr3","extoex_late"),labels=c("EX>CM, late TRs", "EX>CM, 3rd TR","EX, 4fold, late TRs"),name='Classifier')
 
 confacc_plt+geom_pointrange(data=confacc_ag,aes(x=bin_num,y=mean_acc,ymin=min_acc,ymax=max_acc),size=.85)+  geom_line(aes(x=bin_num,y=mean_acc),data=confacc_ag,size=.75) + scale_x_continuous(labels=weirdlybinnedaccconf_df$bin_name[seq(1,20,2)],breaks=seq(1,20,2))+scale_color_discrete(breaks=c("extocm_late","extocm_tr3","extoex_late"),labels=c("EX>CM, late TRs", "EX>CM, 3rd TR","EX, 4fold, late TRs"),name='Classifier')
-```
+
 mvpa_extocm_late_df = read.csv(mvpa_extocm_late_file, header=T)
 mvpa_ex_late_df = read.csv(mvpa_ex_late_file, header=T)
-```
-
-```{r plot accuracy by confidence}
-qplot(correctsVec,actsVec,data=mvpa_extocm_tr3_file)
 ```
 
 ##B. EX>CM TR3 AUC by CM d'
@@ -181,280 +176,58 @@ h2+theme_bw()+labs(y="Classifier Performance (AUC)", x="Testing Data (task)", ti
 
 
 #Figure 7. Tr Sweep!
+
+First, load the data from our special TR sweep results sheet.
 ```{r load tr sweep df}
-trsweepexcm_df = read.csv("~/Dropbox/CM/results_summaries/aucSummary__EXCMTrSweep.csv",header=T)
+trsweepexcm_file = sprintf('%s/results_sheets/aucSummary__EXCMTrSweep.csv',dir)
+trsweepexcm_df = read.csv(trsweepexcm_file,header=T)
 trsweep_df=trsweepexcm_df
 ```
 
-```{r plot tr sweep fig}
-trsweep_ag<-ddply(trsweep_df,c("tr_train","tr_test","tr_te"),summarise,N=length(auc),mean_auc=mean(auc),sd_auc = sd(auc), sem_auc=sd_auc/sqrt(N))
-tr_sweep_fig <- ggplot(trsweep_ag, aes(x=as.numeric(tr_test), y=mean_auc,color=factor(tr_train),fill=factor(tr_train),alpha=.5))+
-  geom_ribbon(aes(ymin=mean_auc-sem_auc, ymax=mean_auc+sem_auc))+geom_line(linetype='dashed')+plotformat+fiftyline+ylim(.4,.7)+theme_bw()
+Then, get the mean, and sem of auc in this data grouped by trained and testing trs, and whether or not the data is scrambled.
+
+```{r summarize_tr_swweep_df}
+trsweep_dfS<-ddply(trsweep_df,c("tr_train","tr_test","tr_te","scrambled"),summarise,N=length(auc),mean_auc=mean(auc),sd_auc = sd(auc), sem_auc=sd_auc/sqrt(N))
+```
+
+Now, we'll check for significance. Whether our results are significant should depend on our choice of `m` (where we want $p \le \alpha/m)
+
+```{r tr_sweep_significance}
+#train tr 3, test tr 3 above chance
+with(subset(trsweep_df, tr_train==3 & tr_test==3),t.test(auc[scrambled==FALSE],auc[scrambled==TRUE]))
+#train tr 4, test tr 3 above chance
+with(subset(trsweep_df, tr_train==4 & tr_test==3),t.test(auc[scrambled==FALSE],auc[scrambled==TRUE]))
+#train tr 3, test tr 5 below chance
+with(subset(trsweep_df, tr_train==3 & tr_test==5),t.test(auc[scrambled==FALSE],auc[scrambled==TRUE]))
+#train tr 4, test tr 5 shows no diff from chance
+with(subset(trsweep_df, tr_train==4 & tr_test==5),t.test(auc[scrambled==FALSE],auc[scrambled==TRUE]))
+```
+
+Let's visualize the result, using our friend ggplot.
+
+```{r plot tr_sweep_fig}
+tr_sweep_fig <- ggplot(trsweep_dfS, aes(x=as.numeric(tr_test), y=mean_auc,color=interaction(scrambled,factor(tr_train)),fill=factor(tr_train),alpha=.5))+  geom_ribbon(aes(ymin=mean_auc-sem_auc, ymax=mean_auc+sem_auc))+geom_line(linetype='dashed')+plotformat+fiftyline+ylim(.4,.7)+theme_bw()
 tr_sweep_fig
 ```
 
-```{r compare tr sweep to chance}
-
-t.test(trsweep_df[trsweep_df$tr_train==3 & trsweep_df$tr_test==2,"auc"],rnorm(24,mean=.5,sd=trsweep_ag[trsweep_ag$tr_train==3&trsweep_ag$tr_test==2,"sd_auc"]))
-t.test(trsweep_df[trsweep_df$tr_train==3 & trsweep_df$tr_test==3,"auc"],rnorm(24,mean=.5,sd=trsweep_ag[trsweep_ag$tr_train==3&trsweep_ag$tr_test==3,"sd_auc"]))
-t.test(trsweep_df[trsweep_df$tr_train==3 & trsweep_df$tr_test==5,"auc"],rnorm(24,mean=.5,sd=trsweep_ag[trsweep_ag$tr_train==3&trsweep_ag$tr_test==5,"sd_auc"]))
-t.test(trsweep_df[trsweep_df$tr_train==3 & trsweep_df$tr_test==6,"auc"],rnorm(24,mean=.5,sd=trsweep_ag[trsweep_ag$tr_train==3&trsweep_ag$tr_test==6,"sd_auc"]))
-
-t.test(trsweep_df[trsweep_df$tr_train==4 & trsweep_df$tr_test==2,"auc"],rnorm(24,mean=.5,sd=trsweep_ag[trsweep_ag$tr_train==4&trsweep_ag$tr_test==2,"sd_auc"]))
-t.test(trsweep_df[trsweep_df$tr_train==4 & trsweep_df$tr_test==3,"auc"],rnorm(24,mean=.5,sd=trsweep_ag[trsweep_ag$tr_train==4&trsweep_ag$tr_test==3,"sd_auc"]))
-t.test(trsweep_df[trsweep_df$tr_train==4 & trsweep_df$tr_test==5,"auc"],rnorm(24,mean=.5,sd=trsweep_ag[trsweep_ag$tr_train==4&trsweep_ag$tr_test==5,"sd_auc"]))
-t.test(trsweep_df[trsweep_df$tr_train==4 & trsweep_df$tr_test==6,"auc"],rnorm(24,mean=.5,sd=trsweep_ag[trsweep_ag$tr_train==4&trsweep_ag$tr_test==6,"sd_auc"]))
 
 
+Let's depict this as a visualization.
+
+#Figure 8: ROIS
+##EX>CM
+```{r look at EX>CM in rois}
+roi_dat_file = sprintf('%s/results_sheets/aucSummary__EXCM_masked.csv',dir)
+roi_df = read.csv(roi_dat_file,header=T)
 ```
 
+```{r make some plots}
+roi_dfS<-ddply(roi_df,c("mask","tr"),summarise,N=length(auc),mean_auc=mean(auc),sd_auc = sd(auc), sem_auc=sd_auc/sqrt(N), min_auc = mean_auc-sem_auc, max_auc = mean_auc+sem_auc)
 
+qplot(tr,auc,data=roi_df,geom='bar',stat='summary',fun.y='mean',position=position_dodge(.9),fill=mask,group=mask)+geom_errorbar(data=roi_dfS,aes(x=tr,y=mean_auc,ymin=min_auc, ymax=max_auc),position=position_dodge(.9))+fiftyline+labs(title='EX>CM roi aucs')
 
-
-
-
-```{r}
-
-
-
-df = read.csv("/Volumes/Tyler_Drive1/CM_mvpa_results//aucSummary_first_try_hitVcr.csv", header = T)
-head(df)
-
-#add tr info
-df$tr[grepl("trW1__0__0__0__0__0",df$name)]=1
-df$tr[grepl("trW0__1__0__0__0__0",df$name)]=2
-df$tr[grepl("trW0__0__1__0__0__0",df$name)]=3
-df$tr[grepl("trW0__0__0__1__0__0",df$name)]=4
-df$tr[grepl("trW0__0__0__0__1__0",df$name)]=5
-df$tr[grepl("trW0__0__0__0__0__1",df$name)]=6
-
-df$t0 = 2*(df$tr-1)
-
-#add mask info
-df$mask[grepl("roiSEPT09_MVPA_MASK_resliced4mm",df$name)]="standard mvpa mask"
-
-#add conditions info
-df$conds[grepl("conds_hitVcr_",df$name)]="hit v cr"
-
-#add train test info
-df$trte[grepl("trTe0_0_0_0_1_2_3_4_",df$name)]="CM>CM (4-fold)"
-df$trte[grepl("trTe1_2_3_4_0_0_0_0_",df$name)]="EX>EX (4-fold)"
-df$trte[grepl("trTe1_1_1_1_2_2_2_2_",df$name) & df$xvalIteration==2]="EX>CM (no xval)"
-df$trte[grepl("trTe1_1_1_1_2_2_2_2_",df$name) & df$xvalIteration==1]="CM>EX (no xval)"
-
-df$trte = factor(df$trte,levels=c("EX>EX (4-fold)","EX>CM (no xval)","CM>CM (4-fold)","CM>EX (no xval)"))
-
-
-
-
+ggplot(roi_dfS,aes(x=tr,y=mean_auc))+geom_pointrange(position = position_dodge(.3), aes(color=mask, group=mask,ymin=min_auc,ymax=max_auc),size=1.15)+fiftyline+labs(title='EX>CM roi aucs')+theme_bw()+plotformat
 
 ```
-
-Figure1.
-
-```{r plot data}
-
-
-df_h1 = subset(df,grepl("EX>",df$trte))
-
-h<-ggplot(df_h1, aes(x=t0)) + fiftyline+geom_vline(xintercept=0, linetype="dotted")+ theme_bw() +scale_fill_manual(values=cbPalette) + scale_colour_manual(values=cbPalette)
-
-h <- h + geom_ribbon(aes(ymin=mean_auc-sem_auc, ymax=mean_auc+sem_auc,alpha=1, fill=trte,color=trte)) + geom_line(aes(y=mean_auc,fill=trte,color=trte),linetype="dashed")
-h <- h + labs(y="Classifier Performance (AUC)", x="Time post stimulus onset (s)", title="Classifier Performance Across Time") + ylim(.4, .7) +theme()
-
-#label data
-#h <- h + annotate("text", x = 6.8, y = .83, label = "CM>CM",color="red")
-#h <- h + annotate("text", x = 5.8, y = .62, label = "EX>EX", color="seaFoam")
-#h <- h + annotate("text", x = 5, y = .485, label = "chance")
-#h <- h + annotate("text", x = 5, y = .57, label = "EX>CM", color="red") + annotate("text", x = 4.2, y = .51, label = "CM>EX", color="OliveDrab") + scale_x_continuous(breaks=seq(0,10,2))
-h +plotformat
-         
-```
-
-```{r load data and categorize, echo=F, results=F}
-cm_df = read.csv("/Users/Jesse/fMRI/COUNTERMEASURES/Data/Functional/mvpa_results/aucSummary_reportCM_across_subs_masked.csv", header = T)
-ex_df = read.csv("/Users/Jesse/fMRI/COUNTERMEASURES/Data/Functional/mvpa_results/aucSummary_reportEX_across_subs_masked.csv", header = T)
-cm_df$reported = 'Countermeasures'
-ex_df$reported = 'Explicit'
-
-df = rbind(ex_df,cm_df)
-df$reported=factor(df$reported,levels=c('Explicit','Countermeasures'))
-
-#add conditions info
-df$conds[grepl("conds_hitVcr_",df$name)]="hit v cr"
-  
-#add train test info
-df$train[grepl("trAll",df$name)]="train EX and CM"
-df$train[grepl("trEX",df$name)]="train EX"
-df$train[grepl("trCM",df$name)]="train CM"
-
-df$subj = sub(".*minus","",df$name)
-df$subj = sub(".img","",df$subj)
-```
-
-```{r aggregate data and plot}
- #meanAndSem=function(x) c(mn = mean(x,na.rm=TRUE), se = sd(x,na.rm=T)/sqrt((sum(as.double(!is.na(x))))), max(x), min(x))
-cbPalette <- c( "#56B4E9","#009E73")
-
-
-df2 = aggregate(mean_auc~conds+train+reported, df, FUN=mean)
-df2_h = subset(df2, train=="train EX")
-df_h = subset(df, train=="train EX")
-
-c<-with(df_h, cor.test(mean_auc[reported=="Explicit"],mean_auc[reported=="Countermeasures"],method="pearson"))
-
-h1<-ggplot(df_h, aes(x=reported,y=mean_auc, fill=reported))+geom_violin(trim=F,alpha=.6)
-
-h1<-h1+geom_line(aes(group=df_h$subj),color=df_h$subj,linetype="longdash")
-
-h1<-h1+geom_point(stat='summary',fun.y='mean')
-
-h1<-h1+theme_bw()+fiftyline+labs(y="Classifier Performance (AUC)", x="Testing Data (task)", title="Classifier Performance Across Subjects")+theme(axis.ticks=element_blank(),axis.text.x=element_blank())+scale_fill_manual(values=cbPalette,name="Testing Data",breaks=c("Explicit","Countermeasures"),labels=c("Explicit","Countermeasures"))
-h1+plotformat
-
-
-
-```
-
-```{r Across S figures}
-xs_exex = read.csv("/Users/Jesse/fMRI/COUNTERMEASURES/Data/Functional/mvpa_results/acrossSs_trEXteEX_combinedFXMask_hitvcr.csv", header = T)
-xs_exex$trte = "EX>EX"
-xs_excm = read.csv("/Users/Jesse/fMRI/COUNTERMEASURES/Data/Functional/mvpa_results/acrossSs_trEXteCM_combinedFXMask_hitvcr.csv", header = T)
-xs_excm$trte = "EX>CM"
-
-xs_trex = rbind(xs_exex, xs_excm)
-xs_trex$trte = factor(xs_trex$trte,levels=c("EX>EX","EX>CM"))
-
-xs_trex$trW[grepl("trW1__0__0__0__0__0_",xs_trex$name)]=0
-xs_trex$trW[grepl("trW0__1__0__0__0__0",xs_trex$name)]=2
-xs_trex$trW[grepl("trW0__0__1__0__0__0",xs_trex$name)]=4
-xs_trex$trW[grepl("trW0__0__0__1__0__0",xs_trex$name)]=6
-xs_trex$trW[grepl("trW0__0__0__0__1__0",xs_trex$name)]=8
-xs_trex$trW[grepl("trW0__0__0__0__0__1",xs_trex$name)]=10
-xs_trex$trW[grepl("trW0____",xs_trex$name)]="late"
-
-xs_trex$conds[grepl("conds_hitVcr_",xs_trex$name)]="hit v cr"
-
-xs_trex$mask[grepl("roiexhitsgrcrs_AND_cmhitsgrcrs_minus",xs_trex$name)]="combined fx leave one out"
-```
-
-```{r across subs tr by tr}
-xs_traggdf=aggregate(mean_auc~trW+trte+conds+mask,xs_trex,mean)
-
-sem=aggregate(mean_auc~trW+trte+conds+mask,xs_trex,function(x) se = sd(x,na.rm=T)/sqrt((sum(as.double(!is.na(x))))))
-
-xs_traggdf$sem_auc=sem$mean_auc
-
-
-xs_traggdf_trs = subset(xs_traggdf,trW!="late")
-xs_traggdf_trs$trW = as.numeric(xs_traggdf_trs$trW)
-
-xs_tr <- ggplot(xs_traggdf_trs, aes(x=trW))+fiftyline+geom_vline(xintercept=0, linetype="dotted")+ theme_bw() #+scale_fill_manual(values=cbPalette) + scale_colour_manual(values=cbPalette)
-xs_tr<-xs_tr + geom_ribbon(aes(ymin=mean_auc-sem_auc, ymax=mean_auc+sem_auc,alpha=1, fill=trte,color=trte)) + geom_line(aes(y=mean_auc,fill=trte,color=trte),linetype="dashed")
-xs_tr+plotformat+scale_fill_manual(values=cbPalette,name="Testing Data",breaks=c("EX>EX","EX>CM"),labels=c("Explicit","Countermeasures"))+scale_colour_manual(values=cbPalette,name="Testing Data",breaks=c("EX>EX","EX>CM"),labels=c("Explicit","Countermeasures"))+ylim(.4,.7)+ labs(y="Classifier Performance (AUC)", x="Time post stimulus onset (s)", title="Classifier Performance Across Time")+scale_x_continuous(breaks=seq(0,10,2))
-```
-
-```{r repeat for masked analyses within S}
-inS_masked = read.csv("/Volumes/Tyler_Drive1/CM_mvpa_results/aucSummary__exexandexcm_lateTrs_withinS_exANDcr_hitgrcrMask.csv", header = T)
-inS_masked$conds[grepl("conds_hitVcr_",inS_masked$name)]="hit v cr"
-inS_masked$mask[grepl("roiexhitsgrcrs_AND_cmhitsgrcrs_minus",inS_masked$name)]="combined fx leave one out"
-#add train test info
-inS_masked$trte[grepl("trTe0_0_0_0_1_2_3_4_",inS_masked$name)]="CM>CM (4-fold)"
-inS_masked$trte[grepl("trTe1_2_3_4_0_0_0_0_",inS_masked$name)]="EX>EX (4-fold)"
-inS_masked$trte[grepl("trTe1_1_1_1_2_2_2_2_",inS_masked$name) & inS_masked$xvalIteration==2]="EX>CM (no xval)"
-inS_masked$trte[grepl("trTe1_1_1_1_2_2_2_2_",inS_masked$name) & inS_masked$xvalIteration==1]="CM>EX (no xval)"
-
-inS_masked$subj = sub(".*minus","",inS_masked$name)
-inS_masked$subj = sub(".mat","",inS_masked$subj)
-
-inS_masked$trW[grepl("trW1__0__0__0__0__0",inS_masked$name)]=0
-inS_masked$trW[grepl("trW0__1__0__0__0__0",inS_masked$name)]=2
-inS_masked$trW[grepl("trW0__0__1__0__0__0",inS_masked$name)]=4
-inS_masked$trW[grepl("trW0__0__0__1__0__0",inS_masked$name)]=6
-inS_masked$trW[grepl("trW0__0__0__0__1__0",inS_masked$name)]=8
-inS_masked$trW[grepl("trW0__0__0__0__0__1",inS_masked$name)]=10
-inS_masked$trW[grepl("trW0____",inS_masked$name)]="late"
-
-inS_masked$trte = factor(inS_masked$trte, levels=c("EX>EX (4-fold)", "EX>CM (no xval)"))
-
-inS_masked_late = subset(inS_masked, trW=="late")
-
-c<- cor.test(inS_masked_late$mean_auc[inS_masked$trte=="EX>EX (4-fold)"], inS_masked$mean_auc[inS_masked$trte=="EX>CM (no xval)"], method = "pearson" )
-
-h2<-ggplot(inS_masked_late, aes(x=trte,y=mean_auc, fill=trte))+geom_violin(trim=F,alpha=.6)+fiftyline
-
-h2<-h2+geom_line(aes(group=inS_masked_late$subj),color=inS_masked_late$subj,linetype="longdash")
-
-h2<-h2+geom_point(stat='summary',fun.y='mean')
-
-h2+theme_bw()+labs(y="Classifier Performance (AUC)", x="Testing Data (task)", title="Common FX Mask Within S")+scale_x_discrete(breaks=NULL)+theme(axis.ticks=element_blank(),axis.text.x=element_blank())+scale_fill_manual(values=cbPalette,name="Testing Data",breaks=c("EX>EX (4-fold)","EX>CM (no xval)"),labels=c("Explicit","Countermeasures"))+plotformat+ylim(0.1, 1)
-
-
-inS_masked_ag = aggregate(mean_auc~trW+trte+conds+mask,inS_masked,mean)
-sem=aggregate(mean_auc~trW+trte+conds+mask,inS_masked,function(x) se = sd(x,na.rm=T)/sqrt((sum(as.double(!is.na(x))))))
-
-inS_masked_ag$sem_auc=sem$mean_auc
-
-df_h1 = subset(inS_masked_ag,!grepl("late",inS_masked_ag$trW))
-df_h1$trW = as.numeric(df_h1$trW)
-
-  ggplot(df_h1, aes(x=trW,y=mean_auc, group=trte)) + fiftyline+geom_vline(xintercept=0, linetype="dotted")+ theme_bw() + geom_ribbon(aes(ymin=mean_auc-sem_auc, ymax=mean_auc+sem_auc,alpha=1, fill=trte,color=trte), show_guide=FALSE) + geom_line(aes(y=mean_auc,fill=trte,color=trte),linetype="longdash")+ labs(y="Classifier Performance (AUC)", x="Time post stimulus onset (s)", title="Classifier Performance Across Time") + ylim(.4, .7) +theme()+scale_fill_manual(values=cbPalette) + scale_colour_manual(values=cbPalette)+plotformat
-
-```
-
-
-##Make Plots for Interaction Mask
-```{r load and annotate data frame}
-exex_inS_intxnMask_df = read.csv("/Volumes/Tyler_Drive1/CM_mvpa_results/aucSummary__EXEX_withinS_exgrcr_hitgrcrMask.csv", header = T)
-exex_inS_intxnMask_df$trte = "EX>EX (4-fold)"
-excm_inS_intxnMask_df = read.csv("/Volumes/Tyler_Drive1/CM_mvpa_results/aucSummary__EXCM_withinS_exgrcr_hitgrcrMask.csv", header = T)
-excm_inS_intxnMask_df$trte = "EX>CM (no xval)"
-inS_intxnMask_df = rbind(exex_inS_intxnMask_df,excm_inS_intxnMask_df)
-inS_intxnMask_df$trte = factor(inS_intxnMask_df$trte,levels=c("EX>EX (4-fold)", "EX>CM (no xval)"))
-
-#add tr info
-inS_intxnMask_df$trW[grepl("trW1__0__0__0__0__0",inS_intxnMask_df$name)]=0
-inS_intxnMask_df$trW[grepl("trW0__1__0__0__0__0",inS_intxnMask_df$name)]=2
-inS_intxnMask_df$trW[grepl("trW0__0__1__0__0__0",inS_intxnMask_df$name)]=4
-inS_intxnMask_df$trW[grepl("trW0__0__0__1__0__0",inS_intxnMask_df$name)]=6
-inS_intxnMask_df$trW[grepl("trW0__0__0__0__1__0",inS_intxnMask_df$name)]=8
-inS_intxnMask_df$trW[grepl("trW0__0__0__0__0__1",inS_intxnMask_df$name)]=10
-inS_intxnMask_df$lateTr=FALSE
-inS_intxnMask_df$lateTr[grepl("trW0____",inS_intxnMask_df$name)]=TRUE
-
-#add mask info
-inS_intxnMask_df$mask[grepl("EXgrCM",inS_intxnMask_df$name)]="intxn mask"
-
-#add conditions info
-inS_intxnMask_df$conds[grepl("conds_hitVcr_",inS_intxnMask_df$name)]="hit v cr"
-
-#make necessary subsets
-inS_intxnMask_df_late = subset(inS_intxnMask_df,lateTr == TRUE)
-inS_intxnMask_df_singleTrs = subset(inS_intxnMask_df,lateTr == FALSE)
-#aggregate tr by tr, mean and sem
-inS_intxnMask_ag = aggregate(mean_auc~trW+trte+conds+mask,inS_intxnMask_df_singleTrs,mean)
-
-sem=aggregate(mean_auc~trW+trte+conds+mask,inS_intxnMask_df_singleTrs,function(x) se = sd(x,na.rm=T)/sqrt((sum(as.double(!is.na(x))))))
-inS_intxnMask_ag$sem_auc=sem$mean_auc
-
-```
-
-```{r make the plots}
-ggplot(inS_intxnMask_ag, aes(x=trW,y=mean_auc, group=trte)) + fiftyline+geom_vline(xintercept=0, linetype="dotted")+ theme_bw() + geom_ribbon(aes(ymin=mean_auc-sem_auc, ymax=mean_auc+sem_auc,alpha=1, fill=trte,color=trte), show_guide=FALSE) + geom_line(aes(y=mean_auc,fill=trte,color=trte),linetype="longdash")+ labs(y="Classifier Performance (AUC)", x="Time post stimulus onset (s)", title="Intxn Mask Within S") + ylim(.4, .7) +theme()+scale_fill_manual(values=cbPalette) + scale_colour_manual(values=cbPalette)+plotformat
-
-h2<-ggplot(inS_intxnMask_df_late, aes(x=trte,y=mean_auc, fill=trte))+geom_violin(trim=F,alpha=.6)+fiftyline
-
-h2<-h2+geom_line(aes(group=inS_masked_late$subj),color=inS_masked_late$subj,linetype="longdash")
-
-h2<-h2+geom_point(stat='summary',fun.y='mean')
-
-h2+theme_bw()+labs(y="Classifier Performance (AUC)", x="Testing Data (task)", title="Intxn FX Mask Within S")+scale_x_discrete(breaks=NULL)+theme(axis.ticks=element_blank(),axis.text.x=element_blank())+scale_fill_manual(values=cbPalette,name="Testing Data",breaks=c("EX>EX (4-fold)","EX>CM (no xval)"),labels=c("Explicit","Countermeasures"))+plotformat+ylim(0.1, 1)
-
-```
-
-
-BEGIN PLOTS BASED ON OLD DATA
-old data here means that this data was produced for the first submission of the paper. there have been subsequent modifications of the code, which mean we should rerun analyses we report.
-
 
 
