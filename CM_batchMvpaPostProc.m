@@ -44,6 +44,8 @@ for ires =1:nfiles
     resB{ires}.name = fileNames{ires};
     cvB{ires}.name = fileNames{ires};
     resB{ires}.subjArray = subjArray;
+    resB{ires}.expt = res.subj{1}.penalty.nVox.weights.expt{1};
+
 end
 
 nres = length(resB);
@@ -52,20 +54,26 @@ for ires = 1:nres
 	nsubs = length(resB{ires}.subjArray);
 	for jsub = 1:nsubs
 		idxToEdit = idxToEdit+1;
-		toR.resname{idxToEdit} = resB{ires}.name;
+		toR.name{idxToEdit} = resB{ires}.name;
 		toR.mean_auc(idxToEdit) = nanmean(resB{ires}.auc);
 		toR.sem_auc(idxToEdit) = nansem(resB{ires}.auc);
-		toR.subNo{idxToEdit} = sprintf('s%02',jsub);
+		toR.subNo{idxToEdit} = sprintf('s%02d',jsub);
+        toR.nIter(idxToEdit) = resB{ires}.expt.num_results_iter;
+        toR.scramble(idxToEdit) = resB{ires}.expt.scramble;
+        toR.which_traintest{idxToEdit} = strjoin(resB{ires}.expt.which_traintest,';' )
+        toR.trW{idxToEdit} = strjoin(resB{ires}.expt.trWeights,';')
+        toR.condNames{idxToEdit} = strjoin(resB{ires}.expt.condNames, 'V');
 		if jsub > length(resB{ires}.auc)
-			toR.auc(idxToEdit);
+			toR.auc(idxToEdit)='nan';
 		end
-		toR.auc(ires,:) = resB{ires}.auc(jsub);
-         end
+		toR.auc(idxToEdit) = resB{ires}.auc(jsub);
+        toR.xvalIterReported{idxToEdit} = num2str(xvalIterToReport);
+    end
  end
  
 fn = fieldnames(toR);
 
-out=['name';toR.resname'];
+out=['name';toR.name'];
 
 for f = 2:length(fn)
     vals = toR.(fn{f});
@@ -76,7 +84,6 @@ for f = 2:length(fn)
     end
 
 end
-out=horzcat(['xval iterations reported'; repmat({num2str(xvalIterToReport)},idxToEdit,1)], out);
 
 if ~isempty(saveName)
     cell2csv(fullfile(resDir, ['aucSummary_' runs_to_report '_' saveName '.csv']), out, ',', 2000);
