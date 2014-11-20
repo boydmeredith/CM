@@ -50,6 +50,7 @@ end
 
 nres = length(resB);
 idxToEdit = 0;
+fieldsToRecord = {'name','condNames','which_traintest','roiName','num_results_iter','scramble','trWeights','trWeights_train','trWeights_test'}
 for ires = 1:nres
 	nsubs = length(resB{ires}.subjArray);
 	for jsub = 1:nsubs
@@ -58,17 +59,22 @@ for ires = 1:nres
 		toR.mean_auc(idxToEdit) = nanmean(resB{ires}.auc);
 		toR.sem_auc(idxToEdit) = nansem(resB{ires}.auc);
 		toR.subNo{idxToEdit} = sprintf('s%02d',jsub);
-        toR.nIter(idxToEdit) = resB{ires}.expt.num_results_iter;
-        toR.scramble(idxToEdit) = resB{ires}.expt.scramble;
-        toR.which_traintest{idxToEdit} = strjoin(resB{ires}.expt.which_traintest,';' )
-        toR.trW{idxToEdit} = strjoin(resB{ires}.expt.trWeights,';')
-        toR.condNames{idxToEdit} = strjoin(resB{ires}.expt.condNames, 'V');
-        toR.mask{idxToEdit} = resB{ires}.expt.roiName;
-		if jsub > length(resB{ires}.auc)
-			toR.auc(idxToEdit)='nan';
+        if jsub > length(resB{ires}.auc)
+            toR.auc(idxToEdit)='nan';
 		end
 		toR.auc(idxToEdit) = resB{ires}.auc(jsub);
         toR.xvalIterReported{idxToEdit} = num2str(xvalIterToReport);
+        
+        for kfield = 1:length(fieldsToRecord)
+            fieldname = fieldsToRecord{kfield}
+            if isfield(resB{ires}.expt, fieldname)
+                %use strjoin to turn value into a delimited string
+                value = strjoin(resB{ires}.expt.(fieldname),';');
+            else
+                value='';
+            end
+            toR.(fieldname){idxToEdit} = value;
+        end
     end
  end
  
