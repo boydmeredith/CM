@@ -1,5 +1,5 @@
-function [resB cvB out] = CM_batchMvpaPostProc(resDir, classStr, xvalIterToReport, task, subjArray, saveName, plotit, runs_to_report)
-%function [resB cvB out] = CM_batchMvpaPostProc(resDir, classStr, xvalIterToReport, task, subjArray, saveName, plotit, runs_to_report)
+function [resB cvB out] = CM_batchMvpaPostProc(classStr, resDir, xvalIterToReport, task, subjArray, saveName, plotit, runs_to_report)
+%function [resB cvB out] = CM_batchMvpaPostProc( classStr,resDir, xvalIterToReport, task, subjArray, saveName, plotit, runs_to_report)
 %inputs:
 %<resDir> the directory containing the results mat files
 %<classSt>: default value is '*conds*". Filters mat files
