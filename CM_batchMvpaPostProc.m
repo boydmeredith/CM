@@ -63,6 +63,7 @@ for ires = 1:nres
         toR.which_traintest{idxToEdit} = strjoin(resB{ires}.expt.which_traintest,';' )
         toR.trW{idxToEdit} = strjoin(resB{ires}.expt.trWeights,';')
         toR.condNames{idxToEdit} = strjoin(resB{ires}.expt.condNames, 'V');
+        toR.mask{idxToEdit} = resB{ires}.expt.roiName;
 		if jsub > length(resB{ires}.auc)
 			toR.auc(idxToEdit)='nan';
 		end
