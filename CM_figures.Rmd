@@ -4,16 +4,18 @@ output: html_document
 ---
 This document will contain the figures we publish in our countermeasures manuscript.
 
-First off, we'll need to load the packages we plan to use.
+#Load packages
+First off, we'll need to **load the packages** we plan to use.
 ```{r load_packages}
-require(plyr) #allows us to summarize data along dimensions we care about
+require(plyr) #plyr is used to summarize data along dimensions we care about
 library(ggplot2) #ggplot! our favorite plotting tool
-require(gridExtra) #allows arrangement of figures in grids
+require(gridExtra) #gridExtra let's us arrangement figures into grids
 ```
 
-Then, we'll setup some variables that we'll use to control how our plots look.
+#Setup plotting variables
+Then, we'll **setup some plotting environment variables** that we'll use to control how our plots look.
 
-```{r}
+```{r set up plot variables}
 #the color blind compatible palette we'll use for our colors
 cbPalette <- c( "#56B4E9","#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7","#999999", "#E69F00")
 
@@ -24,31 +26,142 @@ fiftyline=stat_abline(intercept=.5,slope=0,linetype="dashed",color='black',size=
 plotformat=theme(title= element_text(face="bold",size=15),axis.title = element_text(face="bold",size=14),axis.text=element_text(size=13))
 ```
 
-Now that we've got that setup, we'll grab the data that we plan to use a bunch from our 'results_sheets' directory.
+We'll have to be a little bit clever about getting our color palette into the plots, but the 50% chanceline and plotformats we can just do by adding them to our ggplots, i.e. `myplot + fiftyline`. so simple!
 
-```{r load_data, echo=FALSE}
-dir = "~/cm/Scripts/"
-behav_dat_file = sprintf("%s/results_sheets/cm_behav_to_r.csv",dir)
-mvpa_dat_file = sprintf("%s/results_sheets/aucSummaryToR__exex_excm_cmcm_hitvcr.csv",dir)
+If I wasn't using this document as an R markdown tutorial, I would probably not show this code chunk in the html output. I could have hidden it by adding `echo=FALSE` to the code chunk header (note: code chunk headers are the thing in the Rmd that looks like :
+```{r <chunk_title>, echo=TRUE, fig.width = 5}```
 
+#Load the data
+Now that we've got that setup, we'll **grab the data** that we plan to use a bunch from our 'results_sheets' directory.
+
+```{r load_data}
+dir = "~/cm/Scripts/results_sheets" #all our results csvs live here 
+#specify the name of each results sheet we'll use
+behav_dat_file = sprintf("%s/cm_behav_to_r.csv",dir)
+univ_dat_file = sprintf("%s/CM_betas_toR.csv",dir)
+mvpa_dat_file = sprintf("%s/aucSummaryToR__exex_excm_cmcm_hitvcr.csv",dir)
+#load each results sheet as it's own dataframe
 behav_df = read.csv(behav_dat_file, header=T)
+univ_df = read.csv(univ_dat_file, header=T)
 mvpa_df = read.csv(mvpa_dat_file, header=T)
 ```
 
-#Figure 1 #Figure 2 #Figure 3 #Figure 4
-#Figure 5. Accuracy, confidence, d'
-##A. AUC by Confidence EX>CM late, EX>EX late, EX>CM tr 3
-We'll try looking at:
-- accuracy by confidence
-- accuracy by confidence bin
+#Play with the data
+##Inspect Behavioral Data
+The first thing we'll want to do is have a look at the structure of the behavioral data. We'll use `head` and `summary` to do this.
+
+```{r summarize behavior}
+head(behav_df) #head shows column headers and the first 6 rows of a data frame
+summary(behav_df) #summary provides some information about the distribution of data in the data frame
+```
+
+Great. We can see that this data frame contains overall and task-specific d' and Pr for 16 EA subjects and 8 AA subjects
+
+For now, we'll move onto the univariate data. It'll be happy to see us later.
+
+##Inspect univariate data
+```{r summarize univariate}
+summary(univ_df)
+```
+
+Looks like we have a collection of parameter estimates ($\beta$s) for hits and crs in two tasks (ex and cm) from different contrasts and rois of different shapes (cluster vs sphere).  
+
+##Create summary univariate data frame for plotting
+A good (but not always necessary) first step to plotting, is to create a summary data frame, with the info you'd like. We'll do that for the mean and sem of the parameter estimates and we'll call the result `univ_dfS`.
+
+```{r create univariate summary dataframe}
+univ_dfS = ddply(univ_df,.(Contrast, shape, roi, task, acc),summarise,N=length(beta), mean_beta = mean(beta), sd_beta = sd(beta), sem_beta = sd_beta/sqrt(N), min_beta = mean_beta-sem_beta, max_beta = mean_beta+sem_beta)
+summary(univ_dfS)
+```
+
+The summary looks great! So, now we can plot make some plots using these mean and sem values.
+
+##Make univariate summary plot
+Let's plot our mean $\beta$ for each task and subject accuracy (hit or cr) in facets for each contrast, roi, and sphere vs cluster
+
+First, in order for the plot to display the factors in the order we want, we should reorder them in the data frame.
+
+```{r reorder univ df factors}
+univ_df$task = factor(univ_df$task, levels=c("ex","cm"))
+univ_df$acc = factor(univ_df$acc, levels=c("hit","cr"))
+```
+
+Ok, now we can plot the data.
+
+```{r plot univariate data, fig.width=10, fig.height=6}
+#setup a plot h showing mean betas by task and memory
+h<-ggplot(univ_dfS, aes(x=acc, y=mean_beta, color = task))+ #tells our plot what value to put on the x-axis and y-axis and to group values by task. If we tried to plot now, it would say "no layers in plot" and show nothing
+  geom_pointrange(aes(ymin=min_beta, ymax=max_beta),size=1.25, position=position_dodge(width=.2))+ #here's the meat of the plot. this specifies that we want points with error bars, tells it what values to use for the error bars, how big their should be, and that they should be 'dodged' by grouping on the x-axis
+  geom_line(aes(group=task),size=1.25,position=position_dodge(width=.2))+ #this bit just adds in lines connecting the points. We don't want to plot yet, because we'll have confusing extra points for each contrast, roi, and shape
+  facet_wrap(~Contrast+roi+shape,scales='free_y')+ #We'll 'facet' by the remaining factors, thereby making a separate plot for each combo of the factors. Note that we have to specify that y axis can be different in each facet. Now, we've got something we can actually think about plotting. 
+  plotformat+ #this just tells our plot that it should have axis labels of a certain size, etc (see "Setup plotting variables" section)
+  scale_color_manual(values=cbPalette,name="Task",breaks=c("ex","cm"),labels=c("Explicit","Countermeasures"))+ #this tells the plot we'd like to use our own colors, instead of the ugly defaults
+  labs(y = expression("parameter estimate"), x= "subject memory")+ #here we specify what the labels should be
+  theme_bw()+ #and here, we tell the plot to have a black and white background (instead of the weird grey default)
+  theme(legend.position=c(.85,0.2)) #finally, we move the legend into a postion that's currently vacant
+
+h
+```
+
+At the moment, this gives a warning which has to do with the position dodge in geom_line. I'm not sure why, because the plot looks good. If I take away the line, no warning...
+
+##Univariate betas figure
+We're not exactly sure what how we want the univariate betas figure to like in the manuscript. When we decide, I'll throw the code right here!
+
+For now, let's move onto mvpa.
+
+##Inspect mvpa data frame
+```{r summarize mvpa}
+summary(mvpa_df)
+```
+
+Looks good. Although, the names variable is annoying.
+
+We'll probably want the following plots:
+1 violin plot for ex>ex, ex>cm, cm>cm, cm>ex at late trs
+2 tr-by-tr ribbon plot for ex>ex, ex>cm, cm>cm, cm>ex
+3 classifier performance by subject memory (ex>cm tr 3 auc vs CM d') 
+4 classifier performance by classifier confidence (for ex>cm tr 3, ex>cm late, ex>ex late)
+5 tr sweep ribbon plots for ex>ex, ex>cm, cm>cm, cm>ex 
+6 roi-specific versions of all of the above
+
+
+##CM>CM and CM>EX Violins!
+```{r make late trs df}
+train_test_levels = c('EX,4fold','CM,4fold','EX>CM','CM>EX')
+latetrs_mvpa_df = subset(mvpa_df,tr=='late' & train_test %in% train_test_levels)
+latetrs_mvpa_df$train_test=factor(latetrs_mvpa_df$train_test,levels=train_test_levels)
+```
+
+```{r plot train_cm violins}
+ggplot(subset(latetrs_mvpa_df,train_test %in% c('CM,4fold','CM>EX')), aes(x=train_test, y=auc))+geom_violin(aes(fill=train_test),trim=F,alpha=.6)+geom_point(aes(color=sub),show_guide=F)+geom_line(aes(color=sub, group=sub),show_guide=F)+theme_bw()+fiftyline+labs(y="Classifier Performance (AUC)", x="Testing Data (task)", title="Classifier Trained on CM")+theme(axis.ticks=element_blank(),axis.text.x=element_blank())+scale_fill_manual(values=cbPalette[c(5,3)],name="Testing Data",breaks=c("CM,4fold","CM>EX"),labels=c("CM (cross-validated)","EX"))+plotformat+geom_point(stat='summary',fun.y='mean')
+
+```
+
+```{r plot train_ex violins }
+ggplot(subset(latetrs_mvpa_df,train_test %in% c('EX,4fold','EX>CM')), aes(x=train_test, y=auc))+geom_violin(aes(fill=train_test),trim=F,alpha=.6)+geom_point(aes(color=sub),show_guide=F)+geom_line(aes(color=sub, group=sub),show_guide=F)+theme_bw()+fiftyline+labs(y="Classifier Performance (AUC)", x="Testing Data (task)", title="Classifier Trained on CM")+theme(axis.ticks=element_blank(),axis.text.x=element_blank())+scale_fill_manual(values=cbPalette,name="Testing Data",breaks=c("EX,4fold","EX>CM"),labels=c("EX (cross-validated)","CM"))+plotformat+geom_point(stat='summary',fun.y='mean')
+```
+
+
+
+
+##Explore Confidence EX>CM late, EX>EX late, EX>CM tr 3
+
+###Load data
 ```{r load_this_mvpa_dat}
-mvpa_extocm_tr3_file = sprintf("%s/results_sheets/xvals2_runsrepotred_conds_hitVcr_trTe1_1_1_1_2_2_2_2_trW0__0__1__0__0__0_roiSEPT09_MVPA_MASK_resliced4mm.csv",dir) 
-mvpa_extocm_late_file = sprintf("%s/results_sheets/xvals2_runsrepotred_conds_hitVcr_trTe1_1_1_1_2_2_2_2_trWtr0___________0________0.33________0.34________0.33___________0_te0___________0________0.33________0.34________0.33___________0_roiSEPT09_MVPA_MASK_resliced4mm.csv",dir) 
-mvpa_ex_late_file = sprintf("%s/results_sheets/xvals_runsrepotred_conds_hitVcr_trTe1_2_3_4_0_0_0_0_trW0___________0________0.33________0.34________0.33___________0_roiSEPT09_MVPA_MASK_resliced4mm.csv",dir) 
+mvpa_extocm_tr3_file = sprintf("%s/xvals2_runsrepotred_conds_hitVcr_trTe1_1_1_1_2_2_2_2_trW0__0__1__0__0__0_roiSEPT09_MVPA_MASK_resliced4mm.csv",dir) 
+
+mvpa_extocm_late_file = sprintf("%s/xvals2_runsrepotred_conds_hitVcr_trTe1_1_1_1_2_2_2_2_trWtr0___________0________0.33________0.34________0.33___________0_te0___________0________0.33________0.34________0.33___________0_roiSEPT09_MVPA_MASK_resliced4mm.csv",dir) 
+
+mvpa_ex_late_file = sprintf("%s/xvals_runsrepotred_conds_hitVcr_trTe1_2_3_4_0_0_0_0_trW0___________0________0.33________0.34________0.33___________0_roiSEPT09_MVPA_MASK_resliced4mm.csv",dir) 
 
 mvpa_extocm_tr3_df = read.csv(mvpa_extocm_tr3_file, header=T)
 mvpa_extocm_late_df = read.csv(mvpa_extocm_late_file, header=T)
 mvpa_ex_late_df = read.csv(mvpa_ex_late_file, header=T)
+```
+
+###Add labels to data and combine
+```{r add labels and combine}
 
 mvpa_extocm_tr3_df$name = 'extocm_tr3'
 mvpa_extocm_late_df$name = 'extocm_late'
@@ -57,12 +170,7 @@ mvpa_ex_late_df$name = 'extoex_late'
 confbyacc_df = rbind(mvpa_extocm_tr3_df,mvpa_extocm_late_df,mvpa_ex_late_df)
 ```
 
-```{r plot accuracy by confidence}
-qplot(abs(actsVec-.5),correctsVec,data=confbyacc_df,group=name,color=name,geom='smooth',size=.5)+fiftyline+theme_bw()+plotformat+labs(y=expression("p(classifier correct)"),x=expression("confidence = |p(hit)-.5|"),title="Classifier Accuracy by Confidence")+geom_point(alpha=.05,position=position_jitter(width=0,height=.1))
-
-```
-
-
+###Create percentile confidence bins of the data
 ```{r build confidence bins, cache = T}
 confbyacc_sorted_df = confbyacc_df[with(confbyacc_df, order(name, subs, -abs(actsVec-.5))),]
 acc = numeric(0)
@@ -91,36 +199,33 @@ for (iname in 1:length(names)){
   }
 }
 
-weirdlybinnedaccconf_df = data.frame(sub = subj_num,name = mvpa_name, acc=acc, bin_name=bin_name, bin_num=bin_num)
+mvpa_accbyconf_df = data.frame(sub = subj_num,name = mvpa_name, acc=acc, bin_name=bin_name, bin_num=bin_num)
 
-weirdlybinnedaccconf_df$bin_name = factor(weirdlybinnedaccconf_df$bin_name,
-                                      levels=(weirdlybinnedaccconf_df$bin_name[1:20]))
+mvpa_accbyconf_df$bin_name = factor(mvpa_accbyconf_df$bin_name,
+                                      levels=(mvpa_accbyconf_df$bin_name[1:20]))
 
 ```
 
-```{r plot weird accuracy by confidence}
 
-confacc_ag<-ddply(weirdlybinnedaccconf_df,c("bin_num","name"),summarise,N=length(acc),mean_acc=mean(acc),sd_acc = sd(acc), sem_acc=sd_acc/sqrt(N), min_acc = mean_acc-sem_acc, max_acc = mean_acc+sem_acc)
+###Fit a model and make a plot of accuracy by percentile confidence
+```{r plot accuracy by confidence percentile}
 
-model<- lm(acc~bin_num*name,data=weirdlybinnedaccconf_df)
-grid <- with(weirdlybinnedaccconf_df, expand.grid(
+confacc_ag<-ddply(mvpa_accbyconf_df,c("bin_num","name"),summarise,N=length(acc),mean_acc=mean(acc),sd_acc = sd(acc), sem_acc=sd_acc/sqrt(N), min_acc = mean_acc-sem_acc, max_acc = mean_acc+sem_acc)
+
+model<- lm(acc~bin_num*name,data=mvpa_accbyconf_df)
+grid <- with(mvpa_accbyconf_df, expand.grid(
   name = levels(name),
   bin_num = bin_num
 ))
 grid$acc<-stats::predict(model,newdata=grid)
 
-confacc_plt<-ggplot(weirdlybinnedaccconf_df,aes(x=bin_num,y=acc,group=name,color=name))+theme_bw()+theme(axis.text.x  = element_text(angle=45, vjust=0.5, size=16))+plotformat+labs(x='percentile confidence bin',y=expression("p(classifier correct)"),title="Classifier accuracy by confidence")
+confacc_plt<-ggplot(mvpa_accbyconf_df,aes(x=bin_num,y=acc,group=name,color=name))+theme_bw()+theme(axis.text.x  = element_text(angle=45, vjust=0.5, size=16))+plotformat+labs(x='percentile confidence bin',y=expression("p(classifier correct)"),title="Classifier accuracy by confidence")
 
-confacc_plt+geom_pointrange(data=confacc_ag,aes(x=bin_num,y=mean_acc,ymin=min_acc,ymax=max_acc),size=.85)+  geom_line(data=grid,size=.75) + scale_x_continuous(labels=weirdlybinnedaccconf_df$bin_name[seq(1,20,2)],breaks=seq(1,20,2))+scale_color_discrete(breaks=c("extocm_late","extocm_tr3","extoex_late"),labels=c("EX>CM, late TRs", "EX>CM, 3rd TR","EX, 4fold, late TRs"),name='Classifier')
-
-confacc_plt+geom_pointrange(data=confacc_ag,aes(x=bin_num,y=mean_acc,ymin=min_acc,ymax=max_acc),size=.85)+  geom_line(aes(x=bin_num,y=mean_acc),data=confacc_ag,size=.75) + scale_x_continuous(labels=weirdlybinnedaccconf_df$bin_name[seq(1,20,2)],breaks=seq(1,20,2))+scale_color_discrete(breaks=c("extocm_late","extocm_tr3","extoex_late"),labels=c("EX>CM, late TRs", "EX>CM, 3rd TR","EX, 4fold, late TRs"),name='Classifier')
-
-mvpa_extocm_late_df = read.csv(mvpa_extocm_late_file, header=T)
-mvpa_ex_late_df = read.csv(mvpa_ex_late_file, header=T)
+confacc_plt+geom_pointrange(data=confacc_ag,aes(x=bin_num,y=mean_acc,ymin=min_acc,ymax=max_acc),size=.85)+  geom_line(data=grid,size=.75) + scale_x_continuous(labels=mvpa_accbyconf_df$bin_name[seq(1,20,2)],breaks=seq(1,20,2))+scale_color_discrete(breaks=c("extocm_late","extocm_tr3","extoex_late"),labels=c("EX>CM, late TRs", "EX>CM, 3rd TR","EX, 4fold, late TRs"),name='Classifier')
 ```
 
 ##B. EX>CM TR3 AUC by CM d'
-```{r cm d prime vs ex>cm tr 3}
+```{r cm d prime vs ex to cm tr 3}
 excmtr3 = mvpa_df[mvpa_df$tr==3 & mvpa_df$train_test=="EX>CM",]
 excmtr3$cm_d = behav_df$cm_d
 excmtr3$ex_d = behav_df$ex_d
@@ -135,51 +240,12 @@ with(excmtr3,cor.test(cm_d,ex_d))
 ggplot(excmtr3,aes(y=auc,x=cm_d))+geom_point(size=2.5)+geom_smooth(method="lm")+theme_bw()+plotformat+labs(y="EX>CM Classifier Performance (AUC)",x="CM Memory Performance (d')")
 ```
 
-#Figure 6. CM>CM and CM>EX Violins!
-```{r make late trs df}
-train_test_levels = c('EX,4fold','CM,4fold','EX>CM','CM>EX')
-latetrs_mvpa_df = subset(mvpa_df,tr=='late' & train_test %in% train_test_levels)
-latetrs_mvpa_df$train_test=factor(latetrs_mvpa_df$train_test,levels=train_test_levels)
-```
-
-```{r plot train_cm violins}
-ggplot(subset(latetrs_mvpa_df,train_test %in% c('CM,4fold','CM>EX')), aes(x=train_test, y=auc))+geom_violin(aes(fill=train_test),trim=F,alpha=.6)+geom_point(aes(color=sub),show_guide=F)+geom_line(aes(color=sub, group=sub),show_guide=F)+theme_bw()+fiftyline+labs(y="Classifier Performance (AUC)", x="Testing Data (task)", title="Classifier Trained on CM")+theme(axis.ticks=element_blank(),axis.text.x=element_blank())+scale_fill_manual(values=cbPalette[c(5,3)],name="Testing Data",breaks=c("CM,4fold","CM>EX"),labels=c("CM (cross-validated)","EX"))+plotformat+geom_point(stat='summary',fun.y='mean')
-
-```
-
-```{r plot train_ex violins }
-ggplot(subset(latetrs_mvpa_df,train_test %in% c('EX,4fold','EX>CM')), aes(x=train_test, y=auc))+geom_violin(aes(fill=train_test),trim=F,alpha=.6)+geom_point(aes(color=sub),show_guide=F)+geom_line(aes(color=sub, group=sub),show_guide=F)+theme_bw()+fiftyline+labs(y="Classifier Performance (AUC)", x="Testing Data (task)", title="Classifier Trained on CM")+theme(axis.ticks=element_blank(),axis.text.x=element_blank())+scale_fill_manual(values=cbPalette,name="Testing Data",breaks=c("EX,4fold","EX>CM"),labels=c("EX (cross-validated)","CM"))+plotformat+geom_point(stat='summary',fun.y='mean')
-```
-
-We'll try it with the old data
-
-```{r make plots for data trained within ex}
-df_withinS = read.csv("/Volumes/Tyler_Drive1/CM_mvpa_results/aucSummary_exex_cmcm_hitvcr_macarthur_101014.csv", header = T)
-```
-
-```{r violin within subs}
-df2 = subset(df_withinS,tr=="late")
-df2$trte=factor(df2$trte,levels=c('EX>EX','EX>CM'))
-
-c<-cor.test(df2$auc[df2$trte=="EX>EX"],df2$auc[df2$trte=="EX>CM"],method="pearson")
-
-h2<-ggplot(df2, aes(x=trte,y=auc, fill=trte))+geom_violin(trim=F,alpha=.6)+fiftyline
-
-h2<-h2+geom_line(aes(group=df_h$subj),color=df_h$subj,linetype="longdash")
-
-h2<-h2+geom_point(stat='summary',fun.y='mean')
-
-h2+theme_bw()+labs(y="Classifier Performance (AUC)", x="Testing Data (task)", title="SEPT 09 Mask Within S")+scale_x_discrete(breaks=NULL)+theme(axis.ticks=element_blank(),axis.text.x=element_blank())+scale_fill_manual(values=cbPalette,name="Testing Data",breaks=c("EX>EX","EX>CM"),labels=c("Explicit","Countermeasures"))+plotformat+ylim(0.1, 1)
-
-```
-
-
 
 #Figure 7. Tr Sweep!
 
 First, load the data from our special TR sweep results sheet.
 ```{r load tr sweep df}
-trsweepexcm_file = sprintf('%s/results_sheets/aucSummary__EXCMTrSweep.csv',dir)
+trsweepexcm_file = sprintf('%s/aucSummary__EXCMTrSweep.csv',dir)
 trsweepexcm_df = read.csv(trsweepexcm_file,header=T)
 trsweep_df=trsweepexcm_df
 ```
@@ -217,7 +283,7 @@ Let's depict this as a visualization.
 #Figure 8: ROIS
 ##EX>CM
 ```{r look at EX>CM in rois}
-roi_dat_file = sprintf('%s/results_sheets/aucSummary__EXCM_masked.csv',dir)
+roi_dat_file = sprintf('%s/aucSummary__EXCM_masked.csv',dir)
 roi_df = read.csv(roi_dat_file,header=T)
 ```
 
