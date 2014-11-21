@@ -88,7 +88,9 @@ univ_df$acc = factor(univ_df$acc, levels=c("hit","cr"))
 
 Ok, now we can plot the data.
 
+
 ```{r plot univariate data, fig.width=10, fig.height=6}
+
 #setup a plot h showing mean betas by task and memory
 h<-ggplot(univ_dfS, aes(x=acc, y=mean_beta, color = task))+ #tells our plot what value to put on the x-axis and y-axis and to group values by task. If we tried to plot now, it would say "no layers in plot" and show nothing
   geom_pointrange(aes(ymin=min_beta, ymax=max_beta),size=1.25, position=position_dodge(width=.2))+ #here's the meat of the plot. this specifies that we want points with error bars, tells it what values to use for the error bars, how big their should be, and that they should be 'dodged' by grouping on the x-axis
@@ -118,6 +120,7 @@ summary(mvpa_df)
 Looks good. Although, the names variable is annoying.
 
 We'll probably want the following plots:
+
 1 violin plot for ex>ex, ex>cm, cm>cm, cm>ex at late trs
 2 tr-by-tr ribbon plot for ex>ex, ex>cm, cm>cm, cm>ex
 3 classifier performance by subject memory (ex>cm tr 3 auc vs CM d') 
@@ -152,6 +155,7 @@ ggplot(subset(latetrs_mvpa_df,train_test %in% c('EX,4fold','EX>CM')), aes(x=trai
 mvpa_extocm_tr3_file = sprintf("%s/xvals2_runsrepotred_conds_hitVcr_trTe1_1_1_1_2_2_2_2_trW0__0__1__0__0__0_roiSEPT09_MVPA_MASK_resliced4mm.csv",dir) 
 
 mvpa_extocm_late_file = sprintf("%s/xvals2_runsrepotred_conds_hitVcr_trTe1_1_1_1_2_2_2_2_trWtr0___________0________0.33________0.34________0.33___________0_te0___________0________0.33________0.34________0.33___________0_roiSEPT09_MVPA_MASK_resliced4mm.csv",dir) 
+
 
 mvpa_ex_late_file = sprintf("%s/xvals_runsrepotred_conds_hitVcr_trTe1_2_3_4_0_0_0_0_trW0___________0________0.33________0.34________0.33___________0_roiSEPT09_MVPA_MASK_resliced4mm.csv",dir) 
 
@@ -239,6 +243,7 @@ ggplot(excmtr3,aes(y=auc,x=cm_d))+geom_point(size=2.5)+geom_smooth(method="lm",f
 with(excmtr3,cor.test(cm_d,ex_d))
 ggplot(excmtr3,aes(y=auc,x=cm_d))+geom_point(size=2.5)+geom_smooth(method="lm")+theme_bw()+plotformat+labs(y="EX>CM Classifier Performance (AUC)",x="CM Memory Performance (d')")
 ```
+
 
 
 #Figure 7. Tr Sweep!
