@@ -247,6 +247,40 @@ ggplot(excmtr3,aes(y=auc,x=cm_d))+geom_point(size=2.5)+geom_smooth(method="lm")+
 
 
 #Figure 7. Tr Sweep!
+There's a new excm sheet in town, so let's look at it
+```{r load ex cm df}
+excm_file = sprintf('%s/aucSummary__EXCM.csv',dir)
+excm_df = read.csv(excm_file,header=T)
+```
+
+
+```{r fix tr weight variables}
+trCodes = c("1;0;0;0;0;0","0;1;0;0;0;0","0;0;1;0;0;0","0;0;0;1;0;0","0;0;0;0;1;0","0;0;0;0;0;1","0;0;0.33;0.34;0.33;0")
+trNames = c(0,2,4,6,8,10,'late')
+ntrNames = length(trNames)
+for (i in seq(1,12,2)){
+  excm_df$trW[excm_df$trWeights==trCodes[i]]=trNames[i]
+  excm_df$trW_train[excm_df$trWeights_train==trCodes[i]]=trNames[i]
+  excm_df$trW_test[excm_df$trWeights_test==trCodes[i]]=trNames[i]
+}
+
+
+```
+
+```{r summarize ex cm}
+excm_df$train_test = 'EX>CM'
+excm_dfS<-ddply(excm_df,.(which_traintest,trW,trW_train,trW_test,scramble,roiName),summarise,N=length(auc),mean_auc=mean(auc,na.rm=T),sd_auc = sd(auc,na.rm=T), sem_auc=sd_auc/sqrt(N))
+```
+
+```{r plot ex cm}
+tr_sweep_fig <- ggplot(excm_dfS, aes(x=as.numeric(trW_test), y=mean_auc,color=factor(trW_train),fill=factor(trW_train),alpha=.5))+
+  geom_ribbon(aes(ymin=mean_auc-sem_auc, ymax=mean_auc+sem_auc))+
+  geom_line(linetype='dashed')+plotformat+fiftyline+ylim(.4,.7)+
+  theme_bw()+
+  facet_wrap(~scramble)
+tr_sweep_fig
+```
+
 
 First, load the data from our special TR sweep results sheet.
 ```{r load tr sweep df}

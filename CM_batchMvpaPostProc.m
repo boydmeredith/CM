@@ -38,8 +38,11 @@ userSubjArray = subjArray;
 
 % get list of all files matching classStr and make sure there's something
 % there
-dFN = dir(fullfile(resDir, [classStr]));
-fileNames = {dFN.name};
+fileNames = '';
+for iclassStr = 1:length(classStr)
+	dFN = dir(fullfile(resDir, [classStr{iclassStr}]));
+	fileNames = horzcat(fileNames, {dFN.name});
+end
 dotFiles = cell2mat(cellfun(@(x) x(1)=='.', fileNames, 'UniformOutput', false));
 fileNames(find(dotFiles)) = []; %remove hidden files that are prepended with dots.
 nfile = length(fileNames)
