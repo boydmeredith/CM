@@ -85,26 +85,24 @@ end
 
 % now that we have a structure of results, we can put iterate through them
 % and input them into a data frame format to send to R
-fieldsToRecord = {'name','condNames','which_traintest','roiName','num_results_iter','scramble','trWeights','trWeights_train','trWeights_test'};
+fieldsToRecord = {'condNames','which_traintest','roiName','num_results_iter','scramble','trWeights','trWeights_train','trWeights_test'};
 nres = length(resB); % number of results to record
 idxToEdit = 0; % counter for index in data frame
 
 %iterate through each result
 for ires = 1:nres
+	subArray = resB{ires}.subjArray;
 	nsubs = length(resB{ires}.subjArray);
     %iterate through each subject 
-	for jsub = 1:nsubs
+	for jsub = subArray
 		idxToEdit = idxToEdit+1;
+		s_ix = find(ismember(subArray,jsub));
         % record result values of interest
 		toR.name{idxToEdit} = resB{ires}.name;
 		toR.mean_auc(idxToEdit) = nanmean(resB{ires}.auc);
 		toR.sem_auc(idxToEdit) = nansem(resB{ires}.auc);
 		toR.subNo{idxToEdit} = sprintf('s%02d',jsub);
-        %make sure that this subject is actually in the subject array
-        if jsub > length(resB{ires}.auc)
-            toR.auc(idxToEdit)='nan';
-		end
-		toR.auc(idxToEdit) = resB{ires}.auc(jsub);
+		toR.auc(idxToEdit) = resB{ires}.auc(s_ix);
         toR.xvalIterReported{idxToEdit} = num2str(xvalIterToReport);
         
         %record values of interest from expt params
