@@ -102,7 +102,7 @@ for ires = 1:nres
 		toR.mean_auc(idxToEdit) = nanmean(resB{ires}.auc);
 		toR.sem_auc(idxToEdit) = nansem(resB{ires}.auc);
 		toR.subNo{idxToEdit} = sprintf('s%02d',jsub);
-		toR.auc(idxToEdit) = resB{ires}.auc(s_ix);
+		toR.auc(idxToEdit) = resB{ires}.auc(jsub);
         toR.xvalIterReported{idxToEdit} = num2str(xvalIterToReport);
         
         %record values of interest from expt params
