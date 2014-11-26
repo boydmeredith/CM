@@ -318,6 +318,7 @@ p.addParamValue('tstSubCondsToBal', expt.tstSubCondsToBal, @(x) iscell(x) || isc
 p.addParamValue('num_results_iter',expt.num_results_iter, @(x) isnumeric(x));
 p.addParamValue('generate_importance_maps',expt.generate_importance_maps, @(x) (x==1 || x ==0));
 p.addParamValue('xval_iters_for_imp_map',[],@(x) isnumeric(x));
+p.addParamValue('scramble',expt.scramble,@(x) isnumeric(x));
 p.parse(args{:});
 res = p.Results;
 expt = mergestructs(res, expt);
@@ -397,8 +398,11 @@ if isempty(nickname)
     trWStr_te = strrep(num2str(expt.trWeights_test),' ','_');
     trWStr = ['tr' trWStr_tr '_te' trWStr_te];
     roiStr = regexprep(expt.roiName,'(\w*).*','$1');
-    nickname = sprintf('conds_%s_trTe%s_trW%s_roi%s',condNamesStr,trTeStr,trWStr,roiStr);
-    
+   scrambleStr = ''
+   if expt.scramble
+	   scrambleStr = 'scrambled_'
+   end
+    nickname = sprintf('%sconds_%s_trTe%s_trW%s_roi%s',scrambleStr,condNamesStr,trTeStr,trWStr,roiStr);
 end
 expt.saveName = [expt.saveName nickname];
 expt.impMapDirStr=[expt.dir '/mvpa_results/importance_maps/' expt.saveName];
