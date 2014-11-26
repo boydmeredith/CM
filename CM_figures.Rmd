@@ -1,11 +1,14 @@
 ---
 title: "CM mvpa analysis"
-output: html_document
+output: 
+  html_document:
+    toc: true
+
 ---
 This document will contain the figures we publish in our countermeasures manuscript.
 
 #Load packages
-First off, we'll need to **load the packages** we plan to use.
+First off, we'll need to **load the packages** we plan to use. This is not so different from setting the matlab path at the beginning of a script. 
 ```{r load_packages}
 require(plyr) #plyr is used to summarize data along dimensions we care about
 library(ggplot2) #ggplot! our favorite plotting tool
@@ -46,7 +49,7 @@ univ_df = read.csv(univ_dat_file, header=T)
 mvpa_df = read.csv(mvpa_dat_file, header=T)
 ```
 
-#Play with the data
+#Behavioral Findings
 ##Inspect Behavioral Data
 The first thing we'll want to do is have a look at the structure of the behavioral data. We'll use `head` and `summary` to do this.
 
@@ -82,74 +85,136 @@ Let's plot our mean $\beta$ for each task and subject accuracy (hit or cr) in fa
 First, in order for the plot to display the factors in the order we want, we should reorder them in the data frame.
 
 ```{r reorder univ df factors}
-univ_df$task = factor(univ_df$task, levels=c("ex","cm"))
-univ_df$acc = factor(univ_df$acc, levels=c("hit","cr"))
+univ_dfS$task = factor(univ_dfS$task, levels=c("ex","cm"))
+univ_dfS$acc = factor(univ_dfS$acc, levels=c("hit","cr"))
 ```
 
-Ok, now we can plot the data.
+Ok, now we can write a quick function to plot the data.
 
 
-```{r plot univariate data, fig.width=10, fig.height=6}
-
+```{r plot univariate data}
+plotUnivBetas <- function(pl_df){
 #setup a plot h showing mean betas by task and memory
-h<-ggplot(univ_dfS, aes(x=acc, y=mean_beta, color = task))+ #tells our plot what value to put on the x-axis and y-axis and to group values by task. If we tried to plot now, it would say "no layers in plot" and show nothing
-  geom_pointrange(aes(ymin=min_beta, ymax=max_beta),size=1.25, position=position_dodge(width=.2))+ #here's the meat of the plot. this specifies that we want points with error bars, tells it what values to use for the error bars, how big their should be, and that they should be 'dodged' by grouping on the x-axis
-  geom_line(aes(group=task),size=1.25,position=position_dodge(width=.2))+ #this bit just adds in lines connecting the points. We don't want to plot yet, because we'll have confusing extra points for each contrast, roi, and shape
-  facet_wrap(~Contrast+roi+shape,scales='free_y')+ #We'll 'facet' by the remaining factors, thereby making a separate plot for each combo of the factors. Note that we have to specify that y axis can be different in each facet. Now, we've got something we can actually think about plotting. 
-  plotformat+ #this just tells our plot that it should have axis labels of a certain size, etc (see "Setup plotting variables" section)
-  scale_color_manual(values=cbPalette,name="Task",breaks=c("ex","cm"),labels=c("Explicit","Countermeasures"))+ #this tells the plot we'd like to use our own colors, instead of the ugly defaults
-  labs(y = expression("parameter estimate"), x= "subject memory")+ #here we specify what the labels should be
-  theme_bw()+ #and here, we tell the plot to have a black and white background (instead of the weird grey default)
-  theme(legend.position=c(.85,0.2)) #finally, we move the legend into a postion that's currently vacant
+h<-ggplot(pl_df, aes(x=interaction(acc,task), y=mean_beta,ymin=min_beta,ymax=max_beta, color=task,fill = task))+#tells our plot what value to put on the x-axis and y-axis and to group values by task. If we tried to plot now, it would say "no layers in plot" and show nothing
+   geom_bar(stat='identity',fill='white')+
+  geom_pointrange(,position=position_dodge(1), size=1.2)+#here's the meat of the plot. this specifies that we want points with error bars, tells it what values to use for the error bars, how big their should be, and that they should be 'dodged' by grouping on the x-axis
+  geom_line(aes(group=task))+#this bit just adds in lines connecting the points. We don't want to plot yet, because we'll have confusing extra points for each contrast, roi, and shape
+  facet_wrap(~roi+Contrast+shape,scales='free_y')+#We'll 'facet' by the remaining factors, thereby making a separate plot for each combo of the factors. Note that we have to specify that y axis can be different in each facet. Now, we've got something we can actually think about plotting. 
+  plotformat+  #this just tells our plot that it should have axis labels of a certain size, etc (see "Setup plotting variables" section)
+  scale_color_manual(values=cbPalette,name="Task",breaks=c("ex","cm"),labels=c("Explicit","Countermeasures"))+#this tells the plot we'd like to use our own colors, instead of the ugly defaults
+  scale_fill_manual(values=cbPalette,name="Task",breaks=c("ex","cm"),labels=c("Explicit","Countermeasures"))+
+  labs(x="memory",y="parameter estimate")+#here we specify what the labels should be
+    theme_bw()+
+scale_x_discrete(breaks=c("hit.ex","cr.ex","hit.cm","cr.cm"),labels=c("hit","cr","hit","cr"))
 
-h
+return(h)
+}
 ```
 
-At the moment, this gives a warning which has to do with the position dodge in geom_line. I'm not sure why, because the plot looks good. If I take away the line, no warning...
+Let's look at a first pass with all of the univariate data
+```{r first pass univ plot, fig.width=10, fig.height=6}
+plotUnivBetas(univ_dfS)+  theme(legend.position=c(.85,0.2)) #let's we move the legend into a postion that's currently vacant
+```
 
-##Univariate betas figure
-We're not exactly sure what how we want the univariate betas figure to like in the manuscript. When we decide, I'll throw the code right here!
+##Fig 2. Task x Memory Interaction 
+Here is the same plot, using the subset of the data that we present in the manuscript
+```{r ms univ plot, fig.width=10, fig.height=4}
+univ_dfS_ms = subset(univ_dfS, shape=='sphere' & roi %in% c("Left Ang","Right IPS","Left Hipp"))
+plotUnivBetas(univ_dfS_ms)
+```
 
-For now, let's move onto mvpa.
+##Fig 3. L Ang parameter estimates correlates with CM d'
+We also want to know something about how the angular effects correlate with CM d'. Let's have a look at that.
+```{r correlation cm d prime and ang fx}
+#first let's grab that cluster
+univ_df_ang = subset(univ_df, shape=='cluster' & roi=="Left Ang" & task=='cm')
+#and look at it's structure
+summary(univ_df_ang)
+ang_cm_memsuccess = univ_df_ang$beta[univ_df_ang$acc=='hit']-univ_df_ang$beta[univ_df_ang$acc=='cr']
+ang_cm_memsuccess
+cor.test(ang_cm_memsuccess,behav_df$cm_d)
 
+```
+
+###This correlation is NOT significant at $p<.05$.
+When I looked at ~/Dropbox/CM/manuscript/CM_betas_model2_test.xlsx, it looks like the correlation is only significant at run 3? Also the betas here come from a *cluster*, whereas the betas in the interaction figure *appear* to come from a *sphere*.
+
+---------------
+#MVPA Findings
 ##Inspect mvpa data frame
 ```{r summarize mvpa}
 summary(mvpa_df)
 ```
 
-Looks good. Although, the names variable is annoying.
+Looks good. It'll be helpful to have a summary of this, so let's go ahead and make another dataframe (`mvpa_dfS`) that summarizes the information with mean, sem, and other info.
 
-We'll probably want the following plots:
-
-1 violin plot for ex>ex, ex>cm, cm>cm, cm>ex at late trs
-2 tr-by-tr ribbon plot for ex>ex, ex>cm, cm>cm, cm>ex
-3 classifier performance by subject memory (ex>cm tr 3 auc vs CM d') 
-4 classifier performance by classifier confidence (for ex>cm tr 3, ex>cm late, ex>ex late)
-5 tr sweep ribbon plots for ex>ex, ex>cm, cm>cm, cm>ex 
-6 roi-specific versions of all of the above
-
-
-##CM>CM and CM>EX Violins!
 ```{r make late trs df}
+#reorder factors as appropriate
 train_test_levels = c('EX,4fold','CM,4fold','EX>CM','CM>EX')
 latetrs_mvpa_df = subset(mvpa_df,tr=='late' & train_test %in% train_test_levels)
 latetrs_mvpa_df$train_test=factor(latetrs_mvpa_df$train_test,levels=train_test_levels)
+#create summary df
+mvpa_dfS<-ddply(mvpa_df,c("mask","conds","tr","name","train_test"),summarise,N=length(auc),mean_auc=mean(auc),sd_auc = sd(auc), sem_auc=sd_auc/sqrt(N), min_auc = mean_auc-sem_auc, max_auc = mean_auc+sem_auc)
 ```
 
-```{r plot train_cm violins}
-ggplot(subset(latetrs_mvpa_df,train_test %in% c('CM,4fold','CM>EX')), aes(x=train_test, y=auc))+geom_violin(aes(fill=train_test),trim=F,alpha=.6)+geom_point(aes(color=sub),show_guide=F)+geom_line(aes(color=sub, group=sub),show_guide=F)+theme_bw()+fiftyline+labs(y="Classifier Performance (AUC)", x="Testing Data (task)", title="Classifier Trained on CM")+theme(axis.ticks=element_blank(),axis.text.x=element_blank())+scale_fill_manual(values=cbPalette[c(5,3)],name="Testing Data",breaks=c("CM,4fold","CM>EX"),labels=c("CM (cross-validated)","EX"))+plotformat+geom_point(stat='summary',fun.y='mean')
+The first thing we'll want to plot, is the ex>ex and ex>cm violins and tr by tr stuff that go into figure 4.
 
+First thing I'll do is write some functions that make these plots easy to create.
+####Plotting function for mvpa violins
+```{r  mvpa comparison violins}
+plotMvpaViolin <- function(pl_df){
+  h<-ggplot(pl_df, aes(x=train_test, y=auc))+
+    geom_violin(aes(fill=train_test),trim=F,alpha=.6)+
+    geom_point(aes(color=sub),show_guide=F)+
+    geom_line(aes(color=sub, group=sub),show_guide=F,linetype='dotted')+
+    theme_bw()+
+    fiftyline+
+    theme(axis.ticks=element_blank(),axis.text.x=element_blank())+
+    plotformat+
+    geom_point(stat='summary',fun.y='mean')
+  return(h)
+}
 ```
+
+####Plotting function for mvpa at each tr
+```{r  mvpa tr by tr plot}
+plotMvpaTrRibbons <- function(pl_df){
+  h<-ggplot(pl_df, aes(x=trSec,y=mean_auc,ymin=min_auc,ymax=max_auc, group=train_test, fill=train_test, color=train_test)) +
+     geom_ribbon(alpha=.65) + 
+    geom_line(linetype="longdash")+
+    fiftyline+geom_vline(xintercept=0, linetype="dotted")+
+    theme_bw() +
+    plotformat
+  return(h)
+}
+```
+
+##Fig 4A. EX>EX & EX>CM Violins
 
 ```{r plot train_ex violins }
-ggplot(subset(latetrs_mvpa_df,train_test %in% c('EX,4fold','EX>CM')), aes(x=train_test, y=auc))+geom_violin(aes(fill=train_test),trim=F,alpha=.6)+geom_point(aes(color=sub),show_guide=F)+geom_line(aes(color=sub, group=sub),show_guide=F)+theme_bw()+fiftyline+labs(y="Classifier Performance (AUC)", x="Testing Data (task)", title="Classifier Trained on CM")+theme(axis.ticks=element_blank(),axis.text.x=element_blank())+scale_fill_manual(values=cbPalette,name="Testing Data",breaks=c("EX,4fold","EX>CM"),labels=c("EX (cross-validated)","CM"))+plotformat+geom_point(stat='summary',fun.y='mean')
+plotMvpaViolin(subset(latetrs_mvpa_df,train_test %in% c('EX,4fold','EX>CM')))+
+  labs(y="Classifier Performance (AUC)", x="Testing Data (task)", title="Classifier Trained on EX")+
+  scale_fill_manual(values=cbPalette,name="Testing Data",breaks=c("EX,4fold","EX>CM"),labels=c("EX (cross-validated)","CM"))
 ```
 
+##Fig 4B. EX>EX & EX>CM TR by TR
+First, I want to create a variable `trSec` that corresponds to the number of second post stimulus onset (rather than the tr number), so that we can put that on the x axis
 
+```{r get seconds for tr by tr}
+mvpa_dfS$trSec = as.numeric(mvpa_dfS$tr)*2-1
+mvpa_dfS$trSec[mvpa_dfS$tr=='late'] = NA
+```
 
+Now that I have that, plot away
+```{r plot tr by tr training on ex}
+plotMvpaTrRibbons(subset(mvpa_dfS, train_test %in% c("EX>CM","EX,4fold")))+
+  scale_fill_manual(values=cbPalette,name="Testing Data",breaks=c("EX,4fold","EX>CM"),labels=c("EX (cross-validated)","CM"))+
+  scale_color_manual(values=cbPalette,name="Testing Data",breaks=c("EX,4fold","EX>CM"),labels=c("EX (cross-validated)","CM"))+
+  labs(x="Time Post Stimulus Onset (s)", y="Classifier Performance (AUC)")
+```
 
-##Explore Confidence EX>CM late, EX>EX late, EX>CM tr 3
-
+##Fig 5A. Classifier Performance by Confidence 
+To explore these effects, we're going to need to load new data that looks at trail by trial information, instead of binning across each classifier
 ###Load data
 ```{r load_this_mvpa_dat}
 mvpa_extocm_tr3_file = sprintf("%s/xvals2_runsrepotred_conds_hitVcr_trTe1_1_1_1_2_2_2_2_trW0__0__1__0__0__0_roiSEPT09_MVPA_MASK_resliced4mm.csv",dir) 
@@ -228,60 +293,44 @@ confacc_plt<-ggplot(mvpa_accbyconf_df,aes(x=bin_num,y=acc,group=name,color=name)
 confacc_plt+geom_pointrange(data=confacc_ag,aes(x=bin_num,y=mean_acc,ymin=min_acc,ymax=max_acc),size=.85)+  geom_line(data=grid,size=.75) + scale_x_continuous(labels=mvpa_accbyconf_df$bin_name[seq(1,20,2)],breaks=seq(1,20,2))+scale_color_discrete(breaks=c("extocm_late","extocm_tr3","extoex_late"),labels=c("EX>CM, late TRs", "EX>CM, 3rd TR","EX, 4fold, late TRs"),name='Classifier')
 ```
 
-##B. EX>CM TR3 AUC by CM d'
+
+##Fig 5B. EX>CM TR3 Classifier Performance by CM d'
 ```{r cm d prime vs ex to cm tr 3}
 excmtr3 = mvpa_df[mvpa_df$tr==3 & mvpa_df$train_test=="EX>CM",]
 excmtr3$cm_d = behav_df$cm_d
 excmtr3$ex_d = behav_df$ex_d
-#are these correlated with cm d'
-with(excmtr3,cor.test(auc,cm_d))
+```
+
+```{r ex d prime not correlated to cm tr 3 auc}
 #what about with ex d'?
 with(excmtr3,cor.test(auc,ex_d))
+```
+
+**EX d' is NOT significantly correlated with EX>CM AUC at tr 3 (4-6s post stimulus)**
+
+```{r cm d prime is correlated to cm tr 3 auc}
+#are these correlated with cm d'
+with(excmtr3,cor.test(auc,cm_d))
+```
+
+**CM d' is significantly correlated with EX>CM AUC at tr 3 (4-6s post stimulus)** 
+
+```{r plot correlation}
 #plot them
-ggplot(excmtr3,aes(y=auc,x=cm_d))+geom_point(size=2.5)+geom_smooth(method="lm",fullrange=T,formula=y~log(x+1))+theme_bw()+plotformat+labs(y="EX>CM Classifier Performance (AUC)",x="CM Memory Performance (d')")
-#are ex and cm d' correlated?
-with(excmtr3,cor.test(cm_d,ex_d))
 ggplot(excmtr3,aes(y=auc,x=cm_d))+geom_point(size=2.5)+geom_smooth(method="lm")+theme_bw()+plotformat+labs(y="EX>CM Classifier Performance (AUC)",x="CM Memory Performance (d')")
 ```
 
 
+##Fig 6. CM>CM and CM>EX Violins!
 
-#Figure 7. Tr Sweep!
-There's a new excm sheet in town, so let's look at it
-```{r load ex cm df}
-excm_file = sprintf('%s/aucSummary__EXCM.csv',dir)
-excm_df = read.csv(excm_file,header=T)
+```{r plot train_cm violins}
+plotMvpaViolin(subset(latetrs_mvpa_df,train_test %in% c('CM,4fold','CM>EX')))+
+  labs(y="Classifier Performance (AUC)", x="Testing Data (task)", title="Classifier Trained on CM")+
+  scale_fill_manual(values=cbPalette[c(5,3)],name="Testing Data",breaks=c("CM,4fold","CM>EX"),labels=c("CM (cross-validated)","EX"))
 ```
 
 
-```{r fix tr weight variables}
-trCodes = c("1;0;0;0;0;0","0;1;0;0;0;0","0;0;1;0;0;0","0;0;0;1;0;0","0;0;0;0;1;0","0;0;0;0;0;1","0;0;0.33;0.34;0.33;0")
-trNames = c(0,2,4,6,8,10,'late')
-ntrNames = length(trNames)
-for (i in seq(1,12,2)){
-  excm_df$trW[excm_df$trWeights==trCodes[i]]=trNames[i]
-  excm_df$trW_train[excm_df$trWeights_train==trCodes[i]]=trNames[i]
-  excm_df$trW_test[excm_df$trWeights_test==trCodes[i]]=trNames[i]
-}
-
-
-```
-
-```{r summarize ex cm}
-excm_df$train_test = 'EX>CM'
-excm_dfS<-ddply(excm_df,.(which_traintest,trW,trW_train,trW_test,scramble,roiName),summarise,N=length(auc),mean_auc=mean(auc,na.rm=T),sd_auc = sd(auc,na.rm=T), sem_auc=sd_auc/sqrt(N))
-```
-
-```{r plot ex cm}
-tr_sweep_fig <- ggplot(excm_dfS, aes(x=as.numeric(trW_test), y=mean_auc,color=factor(trW_train),fill=factor(trW_train),alpha=.5))+
-  geom_ribbon(aes(ymin=mean_auc-sem_auc, ymax=mean_auc+sem_auc))+
-  geom_line(linetype='dashed')+plotformat+fiftyline+ylim(.4,.7)+
-  theme_bw()+
-  facet_wrap(~scramble)
-tr_sweep_fig
-```
-
-
+##Fig ?. Tr Sweep!
 First, load the data from our special TR sweep results sheet.
 ```{r load tr sweep df}
 trsweepexcm_file = sprintf('%s/aucSummary__EXCMTrSweep.csv',dir)
@@ -329,10 +378,55 @@ roi_df = read.csv(roi_dat_file,header=T)
 ```{r make some plots}
 roi_dfS<-ddply(roi_df,c("mask","tr"),summarise,N=length(auc),mean_auc=mean(auc),sd_auc = sd(auc), sem_auc=sd_auc/sqrt(N), min_auc = mean_auc-sem_auc, max_auc = mean_auc+sem_auc)
 
-qplot(tr,auc,data=roi_df,geom='bar',stat='summary',fun.y='mean',position=position_dodge(.9),fill=mask,group=mask)+geom_errorbar(data=roi_dfS,aes(x=tr,y=mean_auc,ymin=min_auc, ymax=max_auc),position=position_dodge(.9))+fiftyline+labs(title='EX>CM roi aucs')
-
 ggplot(roi_dfS,aes(x=tr,y=mean_auc))+geom_pointrange(position = position_dodge(.3), aes(color=mask, group=mask,ymin=min_auc,ymax=max_auc),size=1.15)+fiftyline+labs(title='EX>CM roi aucs')+theme_bw()+plotformat
 
 ```
+
+##ROI TR sweep
+There's a new excm sheet in town, so let's look at it
+```{r load ex cm df}
+excm_file = sprintf('%s/aucSummary__EXCM.csv',dir)
+excm_df = read.csv(excm_file,header=T)
+```
+
+```{r roi labels}
+roiNames = c("SEPT09_MVPA_MASK_resliced4mm","rblSplMask_mel101714","rmtlMask_hipPhgAmg_mel101714","rblAngMask_mel101714")
+```
+
+
+```{r fix tr weight variables}
+trCodes = c("1;0;0;0;0;0","0;1;0;0;0;0","0;0;1;0;0;0","0;0;0;1;0;0","0;0;0;0;1;0","0;0;0;0;0;1")
+ntrNames = length(trCodes)
+for (i in 1:6){
+  excm_df$trW[excm_df$trWeights==trCodes[i]]=i
+  excm_df$trW_train[excm_df$trWeights_train==trCodes[i]]=i
+  excm_df$trW_test[excm_df$trWeights_test==trCodes[i]]=i
+}
+excm_df$lateTrs = (excm_df$trWeights_train=="0;0;0.33;0.34;0.33;0")
+excm_df$sameTr_trainTest = (excm_df$trWeights_train==excm_df$trWeights_test)
+
+```
+
+```{r summarize ex cm}
+excm_df$train_test = 'EX>CM'
+excm_dfS<-ddply(excm_df,.(which_traintest,trW,trW_train,trW_test,scramble,lateTrs,roiName,sameTr_trainTest),summarise,N=length(auc),mean_auc=mean(auc,na.rm=T),sd_auc = sd(auc,na.rm=T), sem_auc=sd_auc/sqrt(N),min_auc=mean_auc-sem_auc,max_auc=mean_auc+sem_auc)
+```
+
+##Train on tr 3, test on all trs
+```{r tr sweep plot ex cm, fig.width=12, fig.height =6}
+qplot(data=subset(excm_dfS,trW_train==3),x=trW_test,y=mean_auc,ymin=min_auc,ymax=max_auc,geom='ribbon',fill=roiName,color=roiName,alpha=.8,group=scramble)+geom_line(linetype='dashed')+facet_wrap(~roiName,ncol=3)+fiftyline
+```
+
+##Train and test on all trs
+```{r train test same tr plot ex cm, fig.width=12, fig.height =6}
+qplot(data=subset(excm_dfS,sameTr_trainTest==1),x=trW_test,y=mean_auc,ymin=min_auc,ymax=max_auc,geom='ribbon',fill=roiName,color=roiName,alpha=.8,group=scramble)+geom_line(linetype='dashed')+facet_wrap(~roiName,ncol=3)+fiftyline
+```
+
+##late trs
+```{r late violins}
+qplot(data=subset(excm_df,lateTrs==1),x=roiName,y=auc,geom='violin',fill=roiName,color=roiName,group=roiName,trim=F)+geom_point(color='black',stat='summary',fun.y='mean')+fiftyline
+```
+
+
 
 
