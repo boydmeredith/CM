@@ -80,7 +80,6 @@ for iSub=subj_array
     % manipulate runs based on which_traintest to set xvalid bins
     condensed_runs = subj.selectors{1}.mat(expt.meta_runs~=0);
     res.subj{iSub}.penalty(1).nVox(1).weights(1).condensed_runs = condensed_runs;
-    condensed_runs = expt.which_traintest(condensed_runs);
     
     % temporally condense data: select TRs of interest (to correspond with peak post-stim BOLD
     % response) and detect outliers if specified
