@@ -94,6 +94,9 @@ for iSub=subj_array
     end
     
     [temporally_condensed_data] = temporallyCondenseData(subj, expt);
+    % remove timepoints not referring to regressors of interest 
+    % this circumvents the problem of comparing patterns with no regressors
+    temporally_condensed_data=temporally_condensed_data(:,find(expt.meta_runs(~restTp)));
     
     if expt.remove_artdetect_outliers
         % Exclude trials determined to be outliers by custom ArtDetect script
