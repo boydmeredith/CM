@@ -95,10 +95,10 @@ Ok, now we can write a quick function to plot the data.
 ```{r plot univariate data}
 plotUnivBetas <- function(pl_df){
 #setup a plot h showing mean betas by task and memory
-h<-ggplot(pl_df, aes(x=interaction(acc,task), y=mean_beta,ymin=min_beta,ymax=max_beta, color=task,fill = task))+#tells our plot what value to put on the x-axis and y-axis and to group values by task. If we tried to plot now, it would say "no layers in plot" and show nothing
-   geom_bar(stat='identity',fill='white')+
-  geom_pointrange(,position=position_dodge(1), size=1.2)+#here's the meat of the plot. this specifies that we want points with error bars, tells it what values to use for the error bars, how big their should be, and that they should be 'dodged' by grouping on the x-axis
-  geom_line(aes(group=task))+#this bit just adds in lines connecting the points. We don't want to plot yet, because we'll have confusing extra points for each contrast, roi, and shape
+h<-ggplot(pl_df, aes(x=interaction(acc,task), y=mean_beta,ymin=min_beta,ymax=max_beta, fill = task))+#tells our plot what value to put on the x-axis and y-axis and to group values by task. If we tried to plot now, it would say "no layers in plot" and show nothing
+   geom_bar(stat='identity')+
+  geom_errorbar(position=position_dodge(1), width=.2, color='black')+#here's the meat of the plot. this specifies that we want points with error bars, tells it what values to use for the error bars, how big their should be, and that they should be 'dodged' by grouping on the x-axis
+  #geom_line(aes(group=task))+#this bit just adds in lines connecting the points. We don't want to plot yet, because we'll have confusing extra points for each contrast, roi, and shape
   facet_wrap(~roi+Contrast+shape,scales='free_y')+#We'll 'facet' by the remaining factors, thereby making a separate plot for each combo of the factors. Note that we have to specify that y axis can be different in each facet. Now, we've got something we can actually think about plotting. 
   plotformat+  #this just tells our plot that it should have axis labels of a certain size, etc (see "Setup plotting variables" section)
   scale_color_manual(values=cbPalette,name="Task",breaks=c("ex","cm"),labels=c("Explicit","Countermeasures"))+#this tells the plot we'd like to use our own colors, instead of the ugly defaults
@@ -133,6 +133,7 @@ summary(univ_df_ang)
 ang_cm_memsuccess = univ_df_ang$beta[univ_df_ang$acc=='hit']-univ_df_ang$beta[univ_df_ang$acc=='cr']
 ang_cm_memsuccess
 cor.test(ang_cm_memsuccess,behav_df$cm_d)
+qplot(y=ang_cm_memsuccess,x=behav_df$cm_d)+geom_smooth(method='lm')+plotformat+theme_bw()+stat_abline(intercept=0,slope=0,linetype='dashed')+geom_vline(x=0,linetype='dashed')+labs(y="Retrieval success effects in CM task", x="d' in CM task")
 
 ```
 
@@ -326,7 +327,7 @@ ggplot(excmtr3,aes(y=auc,x=cm_d))+geom_point(size=2.5)+geom_smooth(method="lm")+
 ```{r plot train_cm violins}
 plotMvpaViolin(subset(latetrs_mvpa_df,train_test %in% c('CM,4fold','CM>EX')))+
   labs(y="Classifier Performance (AUC)", x="Testing Data (task)", title="Classifier Trained on CM")+
-  scale_fill_manual(values=cbPalette[c(5,3)],name="Testing Data",breaks=c("CM,4fold","CM>EX"),labels=c("CM (cross-validated)","EX"))
+  scale_fill_manual(values=cbPalette[c(2,1)],name="Testing Data",breaks=c("CM,4fold","CM>EX"),labels=c("CM (cross-validated)","EX"))
 ```
 
 
