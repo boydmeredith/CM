@@ -96,12 +96,10 @@ Ok, now we can write a quick function to plot the data.
 plotUnivBetas <- function(pl_df){
 #setup a plot h showing mean betas by task and memory
 h<-ggplot(pl_df, aes(x=interaction(acc,task), y=mean_beta,ymin=min_beta,ymax=max_beta, fill = task))+#tells our plot what value to put on the x-axis and y-axis and to group values by task. If we tried to plot now, it would say "no layers in plot" and show nothing
-   geom_bar(stat='identity')+
-  geom_errorbar(position=position_dodge(1), width=.2, color='black')+#here's the meat of the plot. this specifies that we want points with error bars, tells it what values to use for the error bars, how big their should be, and that they should be 'dodged' by grouping on the x-axis
-  #geom_line(aes(group=task))+#this bit just adds in lines connecting the points. We don't want to plot yet, because we'll have confusing extra points for each contrast, roi, and shape
+   geom_bar(stat='identity',color='black')+
+  geom_errorbar(position=position_dodge(1), width=0, size=.7, color='black')+#here's the meat of the plot. this specifies that we want points with error bars, tells it what values to use for the error bars, how big their should be, and that they should be 'dodged' by grouping on the x-axis
   facet_wrap(~roi+Contrast+shape,scales='free_y')+#We'll 'facet' by the remaining factors, thereby making a separate plot for each combo of the factors. Note that we have to specify that y axis can be different in each facet. Now, we've got something we can actually think about plotting. 
   plotformat+  #this just tells our plot that it should have axis labels of a certain size, etc (see "Setup plotting variables" section)
-  scale_color_manual(values=cbPalette,name="Task",breaks=c("ex","cm"),labels=c("Explicit","Countermeasures"))+#this tells the plot we'd like to use our own colors, instead of the ugly defaults
   scale_fill_manual(values=cbPalette,name="Task",breaks=c("ex","cm"),labels=c("Explicit","Countermeasures"))+
   labs(x="memory",y="parameter estimate")+#here we specify what the labels should be
     theme_bw()+
@@ -118,27 +116,36 @@ plotUnivBetas(univ_dfS)+  theme(legend.position=c(.85,0.2)) #let's we move the l
 
 ##Fig 2. Task x Memory Interaction 
 Here is the same plot, using the subset of the data that we present in the manuscript
-```{r ms univ plot, fig.width=10, fig.height=4}
+```{r ms univ plot, fig.width=10, fig.height=3}
 univ_dfS_ms = subset(univ_dfS, shape=='sphere' & roi %in% c("Left Ang","Right IPS","Left Hipp"))
 plotUnivBetas(univ_dfS_ms)
 ```
 
 ##Fig 3. L Ang parameter estimates correlates with CM d'
 We also want to know something about how the angular effects correlate with CM d'. Let's have a look at that.
-```{r correlation cm d prime and ang fx}
+```{r correlation cm d prime and ang fx sphere}
 #first let's grab that cluster
-univ_df_ang = subset(univ_df, shape=='cluster' & roi=="Left Ang" & task=='cm')
+univ_df_ang_sphere = subset(univ_df, shape=='sphere' & roi=="Left Ang" & task=='cm')
 #and look at it's structure
-summary(univ_df_ang)
-ang_cm_memsuccess = univ_df_ang$beta[univ_df_ang$acc=='hit']-univ_df_ang$beta[univ_df_ang$acc=='cr']
-ang_cm_memsuccess
-cor.test(ang_cm_memsuccess,behav_df$cm_d)
-qplot(y=ang_cm_memsuccess,x=behav_df$cm_d)+geom_smooth(method='lm')+plotformat+theme_bw()+stat_abline(intercept=0,slope=0,linetype='dashed')+geom_vline(x=0,linetype='dashed')+labs(y="Retrieval success effects in CM task", x="d' in CM task")
+summary(univ_df_ang_sphere)
+ang_sphere_cm_memsuccess = univ_df_ang_sphere$beta[univ_df_ang_sphere$acc=='hit']-univ_df_ang_sphere$beta[univ_df_ang_sphere$acc=='cr']
+cor.test(ang_sphere_cm_memsuccess,behav_df$cm_d)
+qplot(behav_df$cm_d,ang_sphere_cm_memsuccess,geom='smooth',method='lm')+geom_point(size=3, fill='white',shape=21)+theme_bw()+labs(x="d' in CM task",y="Retrieval success effects in CM task")+plotformat+geom_abline(intercept=0,slope=0,linetype='dotted')+geom_vline(x=0,linetype='dotted')+annotate('text',x=1.75,y=.25,label='r = .14, p = 0.26')
 
 ```
 
-###This correlation is NOT significant at $p<.05$.
-When I looked at ~/Dropbox/CM/manuscript/CM_betas_model2_test.xlsx, it looks like the correlation is only significant at run 3? Also the betas here come from a *cluster*, whereas the betas in the interaction figure *appear* to come from a *sphere*.
+###This correlation is NOT significant at $p<.05$, when we use the *sphere* that produced the data above (for the bar graph). However, it is significant when we use the *cluster* and a one-tailed test.
+
+```{r correlation cm d prime and ang fx cluster}
+#first let's grab that cluster
+univ_df_ang_clus = subset(univ_df, shape=='cluster' & roi=="Left Ang" & task=='cm')
+#and look at it's structure
+summary(univ_df_ang_clus)
+ang_clus_cm_memsuccess = univ_df_ang_clus$beta[univ_df_ang_clus$acc=='hit']-univ_df_ang_clus$beta[univ_df_ang_clus$acc=='cr']
+cor.test(ang_clus_cm_memsuccess,behav_df$cm_d)
+qplot(behav_df$cm_d,ang_clus_cm_memsuccess,geom='smooth',method='lm')+geom_point(size=3, fill='white',shape=21)+theme_bw()+labs(x="d' in CM task",y="Retrieval success effects in CM task")+plotformat+geom_abline(intercept=0,slope=0,linetype='dotted')+geom_vline(x=0,linetype='dotted')+annotate('text',x=1.75,y=.25,label='r = .36, p = 0.04')
+````
+
 
 ---------------
 #MVPA Findings
@@ -316,9 +323,9 @@ with(excmtr3,cor.test(auc,cm_d))
 
 **CM d' is significantly correlated with EX>CM AUC at tr 3 (4-6s post stimulus)** 
 
-```{r plot correlation}
+```{r plot correlation between auc and cm d}
 #plot them
-ggplot(excmtr3,aes(y=auc,x=cm_d))+geom_point(size=2.5)+geom_smooth(method="lm")+theme_bw()+plotformat+labs(y="EX>CM Classifier Performance (AUC)",x="CM Memory Performance (d')")
+ggplot(excmtr3,aes(y=auc,x=cm_d))+geom_smooth(method="lm")+geom_point(size=3,fill='white',shape=21)+theme_bw()+plotformat+labs(y="EX>CM Classifier Performance (AUC)",x="CM Memory Performance (d')")
 ```
 
 
