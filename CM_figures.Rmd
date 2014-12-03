@@ -136,6 +136,7 @@ qplot(behav_df$cm_d,ang_sphere_cm_memsuccess,geom='smooth',method='lm')+geom_poi
 
 ###This correlation is NOT significant at $p<.05$, when we use the *sphere* that produced the data above (for the bar graph). However, it is significant when we use the *cluster* and a one-tailed test.
 
+
 ```{r correlation cm d prime and ang fx cluster}
 #first let's grab that cluster
 univ_df_ang_clus = subset(univ_df, shape=='cluster' & roi=="Left Ang" & task=='cm')
@@ -326,6 +327,7 @@ with(excmtr3,cor.test(auc,cm_d))
 ```{r plot correlation between auc and cm d}
 #plot them
 ggplot(excmtr3,aes(y=auc,x=cm_d))+geom_smooth(method="lm")+geom_point(size=3,fill='white',shape=21)+theme_bw()+plotformat+labs(y="EX>CM Classifier Performance (AUC)",x="CM Memory Performance (d')")
+
 ```
 
 
