@@ -413,23 +413,26 @@ for (i in 1:6){
   excm_df$trW_test[excm_df$trWeights_test==trCodes[i]]=i
 }
 excm_df$lateTrs = (excm_df$trWeights_train=="0;0;0.33;0.34;0.33;0")
-excm_df$sameTr_trainTest = (excm_df$trWeights_train==excm_df$trWeights_test)
+#excm_df$sameTr_trainTest = (excm_df$trWeights_train==excm_df$trWeights_test)
 
 ```
 
 ```{r summarize ex cm}
 excm_df$train_test = 'EX>CM'
-excm_dfS<-ddply(excm_df,.(which_traintest,trW,trW_train,trW_test,scramble,lateTrs,roiName,sameTr_trainTest),summarise,N=length(auc),mean_auc=mean(auc,na.rm=T),sd_auc = sd(auc,na.rm=T), sem_auc=sd_auc/sqrt(N),min_auc=mean_auc-sem_auc,max_auc=mean_auc+sem_auc)
+excm_dfS<-ddply(excm_df,.(condNames,name,which_traintest,trW,trW_train,trW_test,scramble,lateTrs,roiName),summarise,N=length(auc),mean_auc=mean(auc,na.rm=T),sd_auc = sd(auc,na.rm=T), sem_auc=sd_auc/sqrt(N),min_auc=mean_auc-sem_auc,max_auc=mean_auc+sem_auc)
 ```
 
 ##Train on tr 3, test on all trs
 ```{r tr sweep plot ex cm, fig.width=12, fig.height =6}
-qplot(data=subset(excm_dfS,trW_train==3),x=trW_test,y=mean_auc,ymin=min_auc,ymax=max_auc,geom='ribbon',fill=roiName,color=roiName,alpha=.8,group=scramble)+geom_line(linetype='dashed')+facet_wrap(~roiName,ncol=3)+fiftyline
+qplot(data=subset(excm_dfS,trW_train==3),x=trW_test,y=mean_auc,ymin=min_auc,ymax=max_auc,geom='ribbon',fill=condNames,group=condNames,color=condNames,alpha=.8,group=scramble)+geom_line(linetype='dashed')+facet_wrap(~roiName,ncol=3)+fiftyline+theme_bw()
+
+
+
 ```
 
 ##Train and test on all trs
 ```{r train test same tr plot ex cm, fig.width=12, fig.height =6}
-qplot(data=subset(excm_dfS,sameTr_trainTest==1),x=trW_test,y=mean_auc,ymin=min_auc,ymax=max_auc,geom='ribbon',fill=roiName,color=roiName,alpha=.8,group=scramble)+geom_line(linetype='dashed')+facet_wrap(~roiName,ncol=3)+fiftyline
+#qplot(data=subset(excm_dfS,sameTr_trainTest==1),x=trW_test,y=mean_auc,ymin=min_auc,ymax=max_auc,geom='ribbon',fill=roiName,color=roiName,alpha=.8,group=scramble)+geom_line(linetype='dashed')+facet_wrap(~roiName,ncol=3)+fiftyline
 ```
 
 ##late trs
