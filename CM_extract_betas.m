@@ -1,4 +1,4 @@
-function betas_out = CM_extract_betas(clus_coords)
+function betas_out = CM_extract_betas(clus_coords, csvName)
 % in the intended use case <clus_coords> is created using spm's eigenvariate
 % function, which outputs a variable <xY.XYZmm>
 
@@ -7,6 +7,7 @@ USING_TD_DERIVS=1;
 expt_name = 'CM';
 fmri_dir = '/Users/Jesse/fMRI/COUNTERMEASURES/Data/Functional';
 analysis_name = 'Results_model2';
+saveDir = '/Users/Jesse/fMRI/COUNTERMEASURES/Group_analyses_univariate/Model2/Test/Task Effects (Explicit Memory Runs_CM Runs) x (Hits_CRs)';
 subj_array = [1,3:10,12:26];
 
 display('Warning: this function will not correct for instances where subjects do not share conditions');
@@ -64,6 +65,18 @@ for vox = 1:nRows_vox
         
     end
     
+end
+
+
+    fn = fieldnames(betas_out);
+    for f = 1:length(fn)
+        out.(fn{f}) = vertcat(mean(betas_out.(fn{f}),2));
+        toPrint(:,f) = [fn{f}; num2cell(out.(fn{f}))];
+    end
+    
+    if nargin>1
+        cell2csv(fullfile(saveDir, [csvName '.csv']), toPrint, ',', 2000);
+    end
 end
             
 
