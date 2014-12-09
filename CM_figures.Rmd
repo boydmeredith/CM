@@ -11,8 +11,9 @@ This document will contain the figures we publish in our countermeasures manuscr
 First off, we'll need to **load the packages** we plan to use. This is not so different from setting the matlab path at the beginning of a script. 
 ```{r load_packages}
 require(plyr) #plyr is used to summarize data along dimensions we care about
-library(ggplot2) #ggplot! our favorite plotting tool
+require(ggplot2) #ggplot! our favorite plotting tool
 require(gridExtra) #gridExtra let's us arrangement figures into grids
+require(reshape)
 ```
 
 #Setup plotting variables
@@ -26,7 +27,7 @@ cbPalette <- c( "#56B4E9","#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7",
 fiftyline=stat_abline(intercept=.5,slope=0,linetype="dashed",color='black',size=1)
 
 #specify font size and face for axis labels and title
-plotformat=theme(title= element_text(face="bold",size=15),axis.title = element_text(face="bold",size=14),axis.text=element_text(size=13))
+plotformat=theme(title= element_text(face="bold",size=15),axis.title = element_text(face="bold",size=14),axis.text=element_text(size=13))+theme_classic()
 ```
 
 We'll have to be a little bit clever about getting our color palette into the plots, but the 50% chanceline and plotformats we can just do by adding them to our ggplots, i.e. `myplot + fiftyline`. so simple!
@@ -98,11 +99,10 @@ plotUnivBetas <- function(pl_df){
 h<-ggplot(pl_df, aes(x=interaction(acc,task), y=mean_beta,ymin=min_beta,ymax=max_beta, fill = task))+#tells our plot what value to put on the x-axis and y-axis and to group values by task. If we tried to plot now, it would say "no layers in plot" and show nothing
    geom_bar(stat='identity',color='black')+
   geom_errorbar(position=position_dodge(1), width=0, size=.7, color='black')+#here's the meat of the plot. this specifies that we want points with error bars, tells it what values to use for the error bars, how big their should be, and that they should be 'dodged' by grouping on the x-axis
-  facet_wrap(~roi+Contrast+shape,scales='free_y')+#We'll 'facet' by the remaining factors, thereby making a separate plot for each combo of the factors. Note that we have to specify that y axis can be different in each facet. Now, we've got something we can actually think about plotting. 
   plotformat+  #this just tells our plot that it should have axis labels of a certain size, etc (see "Setup plotting variables" section)
   scale_fill_manual(values=cbPalette,name="Task",breaks=c("ex","cm"),labels=c("Explicit","Countermeasures"))+
   labs(x="memory",y="parameter estimate")+#here we specify what the labels should be
-    theme_bw()+
+    theme_classic()+
 scale_x_discrete(breaks=c("hit.ex","cr.ex","hit.cm","cr.cm"),labels=c("hit","cr","hit","cr"))
 
 return(h)
@@ -111,15 +111,47 @@ return(h)
 
 Let's look at a first pass with all of the univariate data
 ```{r first pass univ plot, fig.width=10, fig.height=6}
-plotUnivBetas(univ_dfS)+  theme(legend.position=c(.85,0.2)) #let's we move the legend into a postion that's currently vacant
+plotUnivBetas(univ_dfS)+  theme(legend.position=c(.85,0.2))+ #let's we move the legend into a postion that's currently vacant 
+facet_wrap(~roi+Contrast+shape,scales='free_y')#We'll 'facet' by the remaining factors, thereby making a separate plot for each combo of the factors. Note that we have to specify that y axis can be different in each facet. Now, we've got something we can actually think about plotting. 
 ```
 
 ##Fig 2. Task x Memory Interaction 
 Here is the same plot, using the subset of the data that we present in the manuscript
 ```{r ms univ plot, fig.width=10, fig.height=3}
 univ_dfS_ms = subset(univ_dfS, shape=='sphere' & roi %in% c("Left Ang","Right IPS","Left Hipp"))
-plotUnivBetas(univ_dfS_ms)
+plotUnivBetas(univ_dfS_ms)+ facet_wrap(~roi+Contrast+shape,scales='free_y')+#We'll 'facet' by the remaining factors, thereby making a separate plot for each combo of the factors. Note that we have to specify that y axis can be different in each facet. Now, we've got something we can actually think about plotting. 
+  theme_classic()
 ```
+
+In light of the fact that we'll use clusters in the next section, we'll plot the same thing using clusters here
+```{r load ips clusters}
+rIps_file = sprintf('%s/rIpsBetas.csv',dir)
+lIps_file = sprintf('%s/lIpsBetas.csv',dir)
+rIps_df = read.csv(rIps_file,header=T)
+lIps_df = read.csv(lIps_file,header=T)
+rIps_df$shape = 'cluster'
+lIps_df$shape = 'cluster'
+rIps_df$roi = 'right Ips'
+lIps_df$roi = 'left Ips'
+ips_betas = rbind(rIps_df,lIps_df)
+ips_betas = melt(ips_betas)
+ips_betas$subNo = c(1,3:10,12:26)
+ips_betas$task[grepl('Explicit',ips_betas$variable)]='ex'
+ips_betas$task[grepl('CM',ips_betas$variable)]='cm'
+ips_betas$acc[grepl('Hit',ips_betas$variable)]='hit'
+ips_betas$acc[grepl('CR',ips_betas$variable)]='cr'
+ips_betas$acc = factor(ips_betas$acc,levels=c('hit','cr'))
+ips_betas$task = factor(ips_betas$task,levels=c('ex','cm'))
+ips_betas_S = aggregate(value~acc+task+subNo+roi,ips_betas,mean)
+ips_betas_S$beta=ips_betas_S$value
+ips_betas_S=ddply(ips_betas_S,c("acc","task","roi"),summarise,N=length(beta),mean_beta=mean(beta),sd_beta = sd(beta), sem_beta=sd_beta/sqrt(N), min_beta = mean_beta-sem_beta, max_beta = mean_beta+sem_beta)
+
+```
+
+```{r plot ips betas, fig.width=8, fig.height=4}
+plotUnivBetas(ips_betas_S)+facet_wrap(~roi,scales='free_y')+theme_classic()
+```
+
 
 ##Fig 3. L Ang parameter estimates correlates with CM d'
 We also want to know something about how the angular effects correlate with CM d'. Let's have a look at that.
@@ -130,7 +162,7 @@ univ_df_ang_sphere = subset(univ_df, shape=='sphere' & roi=="Left Ang" & task=='
 summary(univ_df_ang_sphere)
 ang_sphere_cm_memsuccess = univ_df_ang_sphere$beta[univ_df_ang_sphere$acc=='hit']-univ_df_ang_sphere$beta[univ_df_ang_sphere$acc=='cr']
 cor.test(ang_sphere_cm_memsuccess,behav_df$cm_d)
-qplot(behav_df$cm_d,ang_sphere_cm_memsuccess,geom='smooth',method='lm')+geom_point(size=3, fill='white',shape=21)+theme_bw()+labs(x="d' in CM task",y="Retrieval success effects in CM task")+plotformat+geom_abline(intercept=0,slope=0,linetype='dotted')+geom_vline(x=0,linetype='dotted')+annotate('text',x=1.75,y=.25,label='r = .14, p = 0.26')
+qplot(behav_df$cm_d,ang_sphere_cm_memsuccess,geom='smooth',method='lm')+geom_point(size=3, fill='white',shape=21)+labs(x="d' in CM task",y="Retrieval success effects in CM task")+plotformat+geom_abline(intercept=0,slope=0,linetype='dotted')+geom_vline(x=0,linetype='dotted')+annotate('text',x=1.75,y=.25,label='r = .14, p = 0.26')
 
 ```
 
@@ -144,7 +176,7 @@ univ_df_ang_clus = subset(univ_df, shape=='cluster' & roi=="Left Ang" & task=='c
 summary(univ_df_ang_clus)
 ang_clus_cm_memsuccess = univ_df_ang_clus$beta[univ_df_ang_clus$acc=='hit']-univ_df_ang_clus$beta[univ_df_ang_clus$acc=='cr']
 cor.test(ang_clus_cm_memsuccess,behav_df$cm_d)
-qplot(behav_df$cm_d,ang_clus_cm_memsuccess,geom='smooth',method='lm')+geom_point(size=3, fill='white',shape=21)+theme_bw()+labs(x="d' in CM task",y="Retrieval success effects in CM task")+plotformat+geom_abline(intercept=0,slope=0,linetype='dotted')+geom_vline(x=0,linetype='dotted')+annotate('text',x=1.75,y=.25,label='r = .36, p = 0.04')
+qplot(behav_df$cm_d,ang_clus_cm_memsuccess,geom='smooth',method='lm')+geom_point(size=3, fill='white',shape=21)+labs(x="d' in CM task",y="Retrieval success effects in CM task")+plotformat+geom_abline(intercept=0,slope=0,linetype='dotted')+geom_vline(x=0,linetype='dotted')+annotate('text',x=1.75,y=.25,label='r = .36, p = 0.04')
 ````
 
 
@@ -176,7 +208,7 @@ plotMvpaViolin <- function(pl_df){
     geom_violin(aes(fill=train_test),trim=F,alpha=.6)+
     geom_point(aes(color=sub),show_guide=F)+
     geom_line(aes(color=sub, group=sub),show_guide=F,linetype='dotted')+
-    theme_bw()+
+    
     fiftyline+
     theme(axis.ticks=element_blank(),axis.text.x=element_blank())+
     plotformat+
@@ -297,7 +329,7 @@ grid <- with(mvpa_accbyconf_df, expand.grid(
 ))
 grid$acc<-stats::predict(model,newdata=grid)
 
-confacc_plt<-ggplot(mvpa_accbyconf_df,aes(x=bin_num,y=acc,group=name,color=name))+theme_bw()+theme(axis.text.x  = element_text(angle=45, vjust=0.5, size=16))+plotformat+labs(x='percentile confidence bin',y=expression("p(classifier correct)"),title="Classifier accuracy by confidence")
+confacc_plt<-ggplot(mvpa_accbyconf_df,aes(x=bin_num,y=acc,group=name,color=name))+plotformat+labs(x='percentile confidence bin',y=expression("p(classifier correct)"),title="Classifier accuracy by confidence")+theme(axis.text.x  = element_text(angle=45, vjust=0.5, size=16))
 
 confacc_plt+geom_pointrange(data=confacc_ag,aes(x=bin_num,y=mean_acc,ymin=min_acc,ymax=max_acc),size=.85)+  geom_line(data=grid,size=.75) + scale_x_continuous(labels=mvpa_accbyconf_df$bin_name[seq(1,20,2)],breaks=seq(1,20,2))+scale_color_discrete(breaks=c("extocm_late","extocm_tr3","extoex_late"),labels=c("EX>CM, late TRs", "EX>CM, 3rd TR","EX, 4fold, late TRs"),name='Classifier')
 ```
@@ -326,7 +358,7 @@ with(excmtr3,cor.test(auc,cm_d))
 
 ```{r plot correlation between auc and cm d}
 #plot them
-ggplot(excmtr3,aes(y=auc,x=cm_d))+geom_smooth(method="lm")+geom_point(size=3,fill='white',shape=21)+theme_bw()+plotformat+labs(y="EX>CM Classifier Performance (AUC)",x="CM Memory Performance (d')")
+ggplot(excmtr3,aes(y=auc,x=cm_d))+geom_smooth(method="lm")+geom_point(size=3,fill='white',shape=21)+plotformat+labs(y="EX>CM Classifier Performance (AUC)",x="CM Memory Performance (d')")
 
 ```
 
@@ -388,7 +420,7 @@ roi_df = read.csv(roi_dat_file,header=T)
 ```{r make some plots}
 roi_dfS<-ddply(roi_df,c("mask","tr"),summarise,N=length(auc),mean_auc=mean(auc),sd_auc = sd(auc), sem_auc=sd_auc/sqrt(N), min_auc = mean_auc-sem_auc, max_auc = mean_auc+sem_auc)
 
-ggplot(roi_dfS,aes(x=tr,y=mean_auc))+geom_pointrange(position = position_dodge(.3), aes(color=mask, group=mask,ymin=min_auc,ymax=max_auc),size=1.15)+fiftyline+labs(title='EX>CM roi aucs')+theme_bw()+plotformat
+ggplot(roi_dfS,aes(x=tr,y=mean_auc))+geom_pointrange(position = position_dodge(.3), aes(color=mask, group=mask,ymin=min_auc,ymax=max_auc),size=1.15)+fiftyline+labs(title='EX>CM roi aucs')+plotformat
 
 ```
 
@@ -423,10 +455,10 @@ excm_dfS<-ddply(excm_df,.(condNames,name,which_traintest,trW,trW_train,trW_test,
 ```
 
 ##Train on tr 3, test on all trs
-```{r tr sweep plot ex cm, fig.width=12, fig.height =6}
-qplot(data=subset(excm_dfS,trW_train==3),x=trW_test,y=mean_auc,ymin=min_auc,ymax=max_auc,geom='ribbon',fill=condNames,group=interaction(scramble,condNames),color=condNames,alpha=scramble,group=scramble)+geom_line(linetype='dashed')+facet_wrap(~roiName,ncol=3,scales='free_y')+fiftyline+theme_bw()+scale_color_manual(values=cbPalette)+scale_fill_manual(values=cbPalette)
+```{r tr sweep plot ex cm, fig.width=15, fig.height =10,warning=F}
+qplot(data=subset(excm_dfS,trW_train==3),x=trW_test,y=mean_auc,ymin=min_auc,ymax=max_auc,geom='ribbon',fill=condNames,group=interaction(scramble,condNames),color=condNames,alpha=scramble,group=scramble)+geom_line(linetype='dashed')+facet_wrap(~roiName,ncol=3,scales='free_y')+fiftyline+scale_color_manual(values=cbPalette)+scale_fill_manual(values=cbPalette)+plotformat
 
-qplot(data=subset(excm_df,trW_train==3  & condNames=='hit;cr'),x=auc,group=interaction(roiName,trW_test,scramble),fill=as.factor(scramble),geom='histogram',binwidth=.03)+fiftyline+facet_wrap(~trW_test+roiName,ncol=7,scales='free')
+qplot(data=subset(excm_df,trW_train==3  & condNames=='hit;cr'),x=auc,group=interaction(roiName,trW_test,scramble),fill=as.factor(scramble),geom='histogram')+facet_wrap(~roiName+trW_test,ncol=6,scales='free')+plotformat
 
 masks=c("rleftAngMask_tbm112514.nii", "rleftSplMask_tbm112514.nii", "rrightAngMask_tbm112514.nii","rrightMtlMask_tbm112514.nii" , "rrightSplMask_tbm112514.nii"  )
 pvals=''
@@ -438,12 +470,12 @@ for (j in 1:length(masks)){
     k=k+1
     test = t.test(auc~as.factor(scramble),data=subset(excm_df, trW_train==3  & condNames=='hit;cr' & trW_test==i & roiName==masks[j]))
     pvals[k]= test$p.value
-    pvals[k]= test$statistic
+    tvals[k]= test$statistic
     names[k]=sprintf('%s/%02d',masks[j],i)
 
   }
 }
-cbind(names,pvals)
+cbind(names,pvals,tvals)
 
 ```
 
