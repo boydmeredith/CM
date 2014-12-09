@@ -5,3 +5,4 @@ cm_mvpa.o*
 *swp
 *html
 *.m.*
+AcrossTrWrapper.m
