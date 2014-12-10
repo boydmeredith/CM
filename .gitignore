@@ -6,3 +6,5 @@ cm_mvpa.o*
 
 *.m.*
 AcrossTrWrapper.m
+CM_figures_cache/*
+CM_figures_files/*
