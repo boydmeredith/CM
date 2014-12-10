@@ -462,7 +462,7 @@ qplot(data=subset(excm_dfS,trW_train==3),x=trW_test,y=mean_auc,ymin=min_auc,ymax
 
 ```{r tr sweep histograms, fig.width=15, fig.height =10}
 
-qplot(data=subset(excm_df,trW_train==3  & condNames=='hit;cr'),x=auc,group=interaction(roiName,trW_test,scramble),fill=as.factor(scramble),geom='histogram')+facet_wrap(~roiName+trW_test,ncol=6,scales='free')+plotformat
+qplot(data=subset(excm_df,trW_train==3  & condNames=='hit;cr'),x=auc,group=interaction(roiName,trW_test,scramble),fill=as.factor(scramble),geom='histogram',binwidth=.03)+facet_wrap(~roiName+trW_test,ncol=6,scales='free')+plotformat
 ```
 
 ```{r tr sweep stats}
