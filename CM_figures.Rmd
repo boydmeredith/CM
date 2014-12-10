@@ -456,11 +456,17 @@ excm_dfS<-ddply(excm_df,.(condNames,name,which_traintest,trW,trW_train,trW_test,
 
 ##Train on tr 3, test on all trs
 ```{r tr sweep plot ex cm, fig.width=15, fig.height =10,warning=F}
-qplot(data=subset(excm_dfS,trW_train==3),x=trW_test,y=mean_auc,ymin=min_auc,ymax=max_auc,geom='ribbon',fill=condNames,group=interaction(scramble,condNames),color=condNames,alpha=scramble,group=scramble)+geom_line(linetype='dashed')+facet_wrap(~roiName,ncol=3,scales='free_y')+fiftyline+scale_color_manual(values=cbPalette)+scale_fill_manual(values=cbPalette)+plotformat
+qplot(data=subset(excm_dfS,trW_train==3),x=trW_test,y=mean_auc,ymin=min_auc,ymax=max_auc,geom='ribbon',fill=condNames,group=interaction(scramble,condNames),color=condNames,alpha=as.factor(scramble),group=scramble)+geom_line(linetype='dashed')+facet_wrap(~roiName,ncol=3,scales='free_y')+fiftyline+scale_color_manual(values=cbPalette)+scale_fill_manual(values=cbPalette)+plotformat
+
+```
+
+```{r tr sweep histograms, fig.width=15, fig.height =10}
 
 qplot(data=subset(excm_df,trW_train==3  & condNames=='hit;cr'),x=auc,group=interaction(roiName,trW_test,scramble),fill=as.factor(scramble),geom='histogram')+facet_wrap(~roiName+trW_test,ncol=6,scales='free')+plotformat
+```
 
-masks=c("rleftAngMask_tbm112514.nii", "rleftSplMask_tbm112514.nii", "rrightAngMask_tbm112514.nii","rrightMtlMask_tbm112514.nii" , "rrightSplMask_tbm112514.nii"  )
+```{r tr sweep stats}
+masks=levels(excm_df$roiName)
 pvals=''
 tvals=''
 names=''
