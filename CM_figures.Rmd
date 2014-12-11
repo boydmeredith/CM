@@ -27,7 +27,7 @@ cbPalette <- c( "#56B4E9","#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7",
 fiftyline=stat_abline(intercept=.5,slope=0,linetype="dashed",color='black',size=1)
 
 #specify font size and face for axis labels and title
-plotformat=theme(title= element_text(face="bold",size=15),axis.title = element_text(face="bold",size=14),axis.text=element_text(size=13))+theme_classic()
+plotformat=theme(title= element_text(size=17),axis.title = element_text(size=17),axis.text.x=element_text(size=15),axis.text.y=element_text(size=15), legend.text=element_text(size=20),strip.text.x = element_text(size = 17))+theme_classic()
 ```
 
 We'll have to be a little bit clever about getting our color palette into the plots, but the 50% chanceline and plotformats we can just do by adding them to our ggplots, i.e. `myplot + fiftyline`. so simple!
@@ -98,13 +98,12 @@ plotUnivBetas <- function(pl_df){
 #setup a plot h showing mean betas by task and memory
 h<-ggplot(pl_df, aes(x=interaction(acc,task), y=mean_beta,ymin=min_beta,ymax=max_beta, fill = task))+#tells our plot what value to put on the x-axis and y-axis and to group values by task. If we tried to plot now, it would say "no layers in plot" and show nothing
    geom_bar(stat='identity',color='black')+
-  geom_errorbar(position=position_dodge(1), width=0, size=.7, color='black')+#here's the meat of the plot. this specifies that we want points with error bars, tells it what values to use for the error bars, how big their should be, and that they should be 'dodged' by grouping on the x-axis
-  plotformat+  #this just tells our plot that it should have axis labels of a certain size, etc (see "Setup plotting variables" section)
+  geom_errorbar(position=position_dodge(1), width=0, size=1.2, color='black')+#here's the meat of the plot. this specifies that we want points with error bars, tells it what values to use for the error bars, how big their should be, and that they should be 'dodged' by grouping on the x-axis
   scale_fill_manual(values=cbPalette,name="Task",breaks=c("ex","cm"),labels=c("Explicit","Countermeasures"))+
-  labs(x="memory",y="parameter estimate")+#here we specify what the labels should be
-    theme_classic()+
-scale_x_discrete(breaks=c("hit.ex","cr.ex","hit.cm","cr.cm"),labels=c("hit","cr","hit","cr"))
-
+  labs(x="Memory",y="Parameter estimate")+#here we specify what the labels should be
+scale_x_discrete(breaks=c("hit.ex","cr.ex","hit.cm","cr.cm"),labels=c("Hit","CR","Hit","CR"))+
+    plotformat + #this just tells our plot that it should have axis labels of a certain size, etc (see "Setup plotting variables" section)
+theme(legend.text=element_text(size=14))
 return(h)
 }
 ```
@@ -119,8 +118,8 @@ facet_wrap(~roi+Contrast+shape,scales='free_y')#We'll 'facet' by the remaining f
 Here is the same plot, using the subset of the data that we present in the manuscript
 ```{r ms univ plot, fig.width=10, fig.height=3}
 univ_dfS_ms = subset(univ_dfS, shape=='sphere' & roi %in% c("Left Ang","Right IPS","Left Hipp"))
-plotUnivBetas(univ_dfS_ms)+ facet_wrap(~roi+Contrast+shape,scales='free_y')+#We'll 'facet' by the remaining factors, thereby making a separate plot for each combo of the factors. Note that we have to specify that y axis can be different in each facet. Now, we've got something we can actually think about plotting. 
-  theme_classic()
+plotUnivBetas(univ_dfS_ms)+ facet_wrap(~roi+Contrast+shape,scales='free_y')#We'll 'facet' by the remaining factors, thereby making a separate plot for each combo of the factors. Note that we have to specify that y axis can be different in each facet. Now, we've got something we can actually think about plotting. 
+ 
 ```
 
 In light of the fact that we'll use clusters in the next section, we'll plot the same thing using clusters here
@@ -131,8 +130,8 @@ rIps_df = read.csv(rIps_file,header=T)
 lIps_df = read.csv(lIps_file,header=T)
 rIps_df$shape = 'cluster'
 lIps_df$shape = 'cluster'
-rIps_df$roi = 'right Ips'
-lIps_df$roi = 'left Ips'
+rIps_df$roi = 'Right IPS'
+lIps_df$roi = 'Left IPS'
 ips_betas = rbind(rIps_df,lIps_df)
 ips_betas = melt(ips_betas)
 ips_betas$subNo = c(1,3:10,12:26)
@@ -142,14 +141,18 @@ ips_betas$acc[grepl('Hit',ips_betas$variable)]='hit'
 ips_betas$acc[grepl('CR',ips_betas$variable)]='cr'
 ips_betas$acc = factor(ips_betas$acc,levels=c('hit','cr'))
 ips_betas$task = factor(ips_betas$task,levels=c('ex','cm'))
-ips_betas_S = aggregate(value~acc+task+subNo+roi,ips_betas,mean)
+ips_betas_S = aggregate(value~acc+task+subNo+roi+shape,ips_betas,mean)
 ips_betas_S$beta=ips_betas_S$value
-ips_betas_S=ddply(ips_betas_S,c("acc","task","roi"),summarise,N=length(beta),mean_beta=mean(beta),sd_beta = sd(beta), sem_beta=sd_beta/sqrt(N), min_beta = mean_beta-sem_beta, max_beta = mean_beta+sem_beta)
+ips_betas_S=ddply(ips_betas_S,c("acc","task","roi","shape"),summarise,N=length(beta),mean_beta=mean(beta),sd_beta = sd(beta), sem_beta=sd_beta/sqrt(N), min_beta = mean_beta-sem_beta, max_beta = mean_beta+sem_beta)
 
 ```
 
 ```{r plot ips betas, fig.width=8, fig.height=4}
-plotUnivBetas(ips_betas_S)+facet_wrap(~roi,scales='free_y')+theme_classic()
+univ_dfS_ms<-merge(univ_dfS,ips_betas_S,all=T)
+univ_dfS_ms<-subset(univ_dfS_ms,roi %in% c("Left Ang", "Left Hipp", "Left IPS"))
+univ_dfS_ms$roi = factor(univ_dfS_ms$roi, labels=c("Left AnG", "Left Hippocampus", "Left IPS"))
+plotUnivBetas(subset(univ_dfS_ms, shape=='cluster'))+facet_wrap(~roi,scales='free_y')
+
 ```
 
 
@@ -162,7 +165,7 @@ univ_df_ang_sphere = subset(univ_df, shape=='sphere' & roi=="Left Ang" & task=='
 summary(univ_df_ang_sphere)
 ang_sphere_cm_memsuccess = univ_df_ang_sphere$beta[univ_df_ang_sphere$acc=='hit']-univ_df_ang_sphere$beta[univ_df_ang_sphere$acc=='cr']
 cor.test(ang_sphere_cm_memsuccess,behav_df$cm_d)
-qplot(behav_df$cm_d,ang_sphere_cm_memsuccess,geom='smooth',method='lm')+geom_point(size=3, fill='white',shape=21)+labs(x="d' in CM task",y="Retrieval success effects in CM task")+plotformat+geom_abline(intercept=0,slope=0,linetype='dotted')+geom_vline(x=0,linetype='dotted')+annotate('text',x=1.75,y=.25,label='r = .14, p = 0.26')
+qplot(behav_df$cm_d,ang_sphere_cm_memsuccess,geom='smooth',method='lm')+geom_point(size=3, fill='white',shape=21)+labs(x="d' in CM task",y="Retrieval success effects in CM task")+plotformat+geom_abline(intercept=0,slope=0,linetype='dotted')+geom_vline(x=0,linetype='dotted')
 
 ```
 
@@ -176,7 +179,9 @@ univ_df_ang_clus = subset(univ_df, shape=='cluster' & roi=="Left Ang" & task=='c
 summary(univ_df_ang_clus)
 ang_clus_cm_memsuccess = univ_df_ang_clus$beta[univ_df_ang_clus$acc=='hit']-univ_df_ang_clus$beta[univ_df_ang_clus$acc=='cr']
 cor.test(ang_clus_cm_memsuccess,behav_df$cm_d)
-qplot(behav_df$cm_d,ang_clus_cm_memsuccess,geom='smooth',method='lm')+geom_point(size=3, fill='white',shape=21)+labs(x="d' in CM task",y="Retrieval success effects in CM task")+plotformat+geom_abline(intercept=0,slope=0,linetype='dotted')+geom_vline(x=0,linetype='dotted')+annotate('text',x=1.75,y=.25,label='r = .36, p = 0.04')
+qplot(behav_df$cm_d,ang_clus_cm_memsuccess,geom='smooth',method='lm')+geom_point(size=3.5, fill='white',shape=21)+labs(x="d' in CM task",y="Retrieval success effects in CM task")+plotformat+geom_abline(intercept=0,slope=0,linetype='dashed')+geom_vline(x=0,linetype='dashed')
+
+
 ````
 
 
@@ -225,7 +230,8 @@ plotMvpaTrRibbons <- function(pl_df){
     geom_line(linetype="longdash")+
     fiftyline+geom_vline(xintercept=0, linetype="dotted")+
     theme_bw() +
-    plotformat
+    plotformat+
+    scale_x_discrete(breaks=seq(2,12,2))
   return(h)
 }
 ```
@@ -234,8 +240,10 @@ plotMvpaTrRibbons <- function(pl_df){
 
 ```{r plot train_ex violins }
 plotMvpaViolin(subset(latetrs_mvpa_df,train_test %in% c('EX,4fold','EX>CM')))+
-  labs(y="Classifier Performance (AUC)", x="Testing Data (task)", title="Classifier Trained on EX")+
-  scale_fill_manual(values=cbPalette,name="Testing Data",breaks=c("EX,4fold","EX>CM"),labels=c("EX (cross-validated)","CM"))
+  labs(y="Classifier Performance (AUC)", x="Testing Data (task)", title="Explicit Memory Classiier")+
+  scale_fill_manual(values=cbPalette,name="Testing Data",breaks=c("EX,4fold","EX>CM"),labels=c("EX (cross-validated)","CM"))+
+  scale_x_discrete(breaks=c("EX,4fold","EX>CM"),labels=c("EX","CM"))
+
 ```
 
 ##Fig 4B. EX>EX & EX>CM TR by TR
@@ -248,7 +256,7 @@ mvpa_dfS$trSec[mvpa_dfS$tr=='late'] = NA
 
 Now that I have that, plot away
 ```{r plot tr by tr training on ex}
-plotMvpaTrRibbons(subset(mvpa_dfS, train_test %in% c("EX>CM","EX,4fold")))+
+plotMvpaTrRibbons(subset(mvpa_dfS, train_test %in% c("EX>CM","EX,4fold") & !is.na(trSec)))+
   scale_fill_manual(values=cbPalette,name="Testing Data",breaks=c("EX,4fold","EX>CM"),labels=c("EX (cross-validated)","CM"))+
   scale_color_manual(values=cbPalette,name="Testing Data",breaks=c("EX,4fold","EX>CM"),labels=c("EX (cross-validated)","CM"))+
   labs(x="Time Post Stimulus Onset (s)", y="Classifier Performance (AUC)")
@@ -329,9 +337,9 @@ grid <- with(mvpa_accbyconf_df, expand.grid(
 ))
 grid$acc<-stats::predict(model,newdata=grid)
 
-confacc_plt<-ggplot(mvpa_accbyconf_df,aes(x=bin_num,y=acc,group=name,color=name))+plotformat+labs(x='percentile confidence bin',y=expression("p(classifier correct)"),title="Classifier accuracy by confidence")+theme(axis.text.x  = element_text(angle=45, vjust=0.5, size=16))
+confacc_plt<-ggplot(mvpa_accbyconf_df,aes(x=bin_num,y=acc,group=name,color=name))+plotformat+labs(x='Percentile confidence bin',y=expression("p(Classifier correct)"),title="Classifier accuracy by confidence")+theme(axis.text.x  = element_text(angle=45, vjust=0.5))
 
-confacc_plt+geom_pointrange(data=confacc_ag,aes(x=bin_num,y=mean_acc,ymin=min_acc,ymax=max_acc),size=.85)+  geom_line(data=grid,size=.75) + scale_x_continuous(labels=mvpa_accbyconf_df$bin_name[seq(1,20,2)],breaks=seq(1,20,2))+scale_color_discrete(breaks=c("extocm_late","extocm_tr3","extoex_late"),labels=c("EX>CM, late TRs", "EX>CM, 3rd TR","EX, 4fold, late TRs"),name='Classifier')
+confacc_plt+geom_pointrange(data=confacc_ag,aes(x=bin_num,y=mean_acc,ymin=min_acc,ymax=max_acc),size=.85)+  geom_line(data=grid,size=.75) + scale_x_continuous(labels=mvpa_accbyconf_df$bin_name[seq(1,20,2)],breaks=seq(1,20,2))+scale_color_discrete(breaks=c("extocm_late","extocm_tr3","extoex_late"),labels=c("EX>CM, late TRs", "EX>CM, 3rd TR","EX, (cross-validated), late TRs"),name='Classifier')
 ```
 
 
@@ -368,16 +376,17 @@ ggplot(excmtr3,aes(y=auc,x=cm_d))+geom_smooth(method="lm")+geom_point(size=3,fil
 ```{r plot train_cm violins}
 plotMvpaViolin(subset(latetrs_mvpa_df,train_test %in% c('CM,4fold','CM>EX')))+
   labs(y="Classifier Performance (AUC)", x="Testing Data (task)", title="Classifier Trained on CM")+
-  scale_fill_manual(values=cbPalette[c(2,1)],name="Testing Data",breaks=c("CM,4fold","CM>EX"),labels=c("CM (cross-validated)","EX"))
+  scale_fill_manual(values=cbPalette[c(2,1)],name="Testing Data",breaks=c("CM,4fold","CM>EX"),labels=c("CM (cross-validated)","EX"))+
+  scale_x_discrete(breaks=c("CM,4fold","CM>EX"),labels=c("CM","EX"))
 ```
 
 
 ##Fig ?. Tr Sweep!
 First, load the data from our special TR sweep results sheet.
 ```{r load tr sweep df}
-trsweepexcm_file = sprintf('%s/aucSummary__EXCMTrSweep.csv',dir)
-trsweepexcm_df = read.csv(trsweepexcm_file,header=T)
-trsweep_df=trsweepexcm_df
+trsweeptrsweep_file = sprintf('%s/aucSummary__EXCMTrSweep.csv',dir)
+trsweeptrsweep_df = read.csv(trsweeptrsweep_file,header=T)
+trsweep_df=trsweeptrsweep_df
 ```
 
 Then, get the mean, and sem of auc in this data grouped by trained and testing trs, and whether or not the data is scrambled.
@@ -424,49 +433,67 @@ ggplot(roi_dfS,aes(x=tr,y=mean_auc))+geom_pointrange(position = position_dodge(.
 
 ```
 
-##ROI TR sweep
-There's a new excm sheet in town, so let's look at it
+##ROI TR sweep: Train on tr 3, test on all trs
+
 ```{r load ex cm df}
-excm_file = sprintf('%s/aucSummary__EXCM.csv',dir)
-excm_df = read.csv(excm_file,header=T)
+trsweep_file = sprintf('%s/aucSummary__trsweep.csv',dir)
+trsweep_df = read.csv(trsweep_file,header=T)
 ```
 
-```{r roi labels}
-roiNames = c("SEPT09_MVPA_MASK_resliced4mm","rblSplMask_mel101714","rmtlMask_hipPhgAmg_mel101714","rblAngMask_mel101714")
+```{r play with factors}
+trsweep_df$scramble = as.factor(trsweep_df$scramble)
+trsweep_df$conds_traintest = with(trsweep_df,paste(condNames, which_traintest))
 ```
 
+```
+summary(trsweep_df)
+```
 
 ```{r fix tr weight variables}
 trCodes = c("1;0;0;0;0;0","0;1;0;0;0;0","0;0;1;0;0;0","0;0;0;1;0;0","0;0;0;0;1;0","0;0;0;0;0;1")
 ntrNames = length(trCodes)
 for (i in 1:6){
-  excm_df$trW[excm_df$trWeights==trCodes[i]]=i
-  excm_df$trW_train[excm_df$trWeights_train==trCodes[i]]=i
-  excm_df$trW_test[excm_df$trWeights_test==trCodes[i]]=i
+  trsweep_df$trW[trsweep_df$trWeights==trCodes[i]]=i
+  trsweep_df$trW_train[trsweep_df$trWeights_train==trCodes[i]]=i
+  trsweep_df$trW_test[trsweep_df$trWeights_test==trCodes[i]]=i
 }
-excm_df$lateTrs = (excm_df$trWeights_train=="0;0;0.33;0.34;0.33;0")
-#excm_df$sameTr_trainTest = (excm_df$trWeights_train==excm_df$trWeights_test)
+trsweep_df$lateTrs = (trsweep_df$trWeights_train=="0;0;0.33;0.34;0.33;0")
+#trsweep_df$sameTr_trainTest = (trsweep_df$trWeights_train==trsweep_df$trWeights_test)
 
 ```
 
 ```{r summarize ex cm}
-excm_df$train_test = 'EX>CM'
-excm_dfS<-ddply(excm_df,.(condNames,name,which_traintest,trW,trW_train,trW_test,scramble,lateTrs,roiName),summarise,N=length(auc),mean_auc=mean(auc,na.rm=T),sd_auc = sd(auc,na.rm=T), sem_auc=sd_auc/sqrt(N),min_auc=mean_auc-sem_auc,max_auc=mean_auc+sem_auc)
+
+trsweep_dfS<-ddply(trsweep_df,.(condNames,name,conds_traintest,which_traintest,trW,trW_train,trW_test,scramble,lateTrs,roiName),summarise,N=length(auc),mean_auc=mean(auc,na.rm=T),sd_auc = sd(auc,na.rm=T), sem_auc=sd_auc/sqrt(N),min_auc=mean_auc-sem_auc,max_auc=mean_auc+sem_auc)
 ```
 
-##Train on tr 3, test on all trs
+
 ```{r tr sweep plot ex cm, fig.width=15, fig.height =10,warning=F}
-qplot(data=subset(excm_dfS,trW_train==3),x=trW_test,y=mean_auc,ymin=min_auc,ymax=max_auc,geom='ribbon',fill=condNames,group=interaction(scramble,condNames),color=condNames,alpha=as.factor(scramble),group=scramble)+geom_line(linetype='dashed')+facet_wrap(~roiName,ncol=3,scales='free_y')+fiftyline+scale_color_manual(values=cbPalette)+scale_fill_manual(values=cbPalette)+plotformat
+
+trsweep_dfS$trSec = as.numeric(trsweep_dfS$trW_test)*2-1
+trsweep_dfS$trSec[trsweep_dfS$tr=='late'] = NA
+trsweep_dfS$train_test[trsweep_dfS$condNames=='exHit;exCr']="EX, 2fold"
+trsweep_dfS$train_test[trsweep_dfS$condNames=='hit;cr']='EX>CM'
+trsweep_dfS$roiLabel = factor(trsweep_dfS$roiName, labels = c("Left AnG", "Left MTL", "Left SPL","Right AnG","Right MTL", "Right SPL", "Whole brain"))
+
+plotMvpaTrRibbons(subset(trsweep_dfS,trW_train==3 & scramble == 0))+facet_wrap(~roiLabel)+
+  scale_fill_manual(values=cbPalette,name="Testing Data",breaks=c("EX, 2fold","EX>CM"),labels=c("EX (cross-validated)","CM"))+
+  scale_color_manual(values=cbPalette,name="Testing Data",breaks=c("EX, 2fold","EX>CM"),labels=c("EX (cross-validated)","CM"))+
+  labs(x="Time Post Stimulus Onset (s)", y="Classifier Performance (AUC)")
+
+
 
 ```
 
 ```{r tr sweep histograms, fig.width=15, fig.height =10}
 
-qplot(data=subset(excm_df,trW_train==3  & condNames=='hit;cr'),x=auc,group=interaction(roiName,trW_test,scramble),fill=as.factor(scramble),geom='histogram',binwidth=.03)+facet_wrap(~roiName+trW_test,ncol=6,scales='free')+plotformat
+qplot(data=subset(trsweep_df,trW_train==3  & condNames=='hit;cr'),x=auc,group=interaction(roiName,trW_test,scramble),fill=as.factor(scramble),geom='bar',position='dodge',alpha=.5)+facet_wrap(~roiName+trW_test,ncol=6,scales='free')+plotformat
 ```
 
+**Perhaps we should be increasing our power by using each iteration as an observation, rather than averaging and then comparing 24 observations**
+
 ```{r tr sweep stats}
-masks=levels(excm_df$roiName)
+masks=levels(trsweep_df$roiName)
 pvals=''
 tvals=''
 names=''
@@ -474,7 +501,7 @@ k=0
 for (j in 1:length(masks)){
   for (i in 1:6){
     k=k+1
-    test = t.test(auc~as.factor(scramble),data=subset(excm_df, trW_train==3  & condNames=='hit;cr' & trW_test==i & roiName==masks[j]))
+    test = t.test(auc~scramble,data=subset(trsweep_df, trW_train==3  & condNames=='hit;cr' & trW_test==i & roiName==masks[j]))
     pvals[k]= test$p.value
     tvals[k]= test$statistic
     names[k]=sprintf('%s/%02d',masks[j],i)
@@ -485,16 +512,98 @@ cbind(names,pvals,tvals)
 
 ```
 
-##Train and test on all trs
-```{r train test same tr plot ex cm, fig.width=12, fig.height =6}
-#qplot(data=subset(excm_dfS,sameTr_trainTest==1),x=trW_test,y=mean_auc,ymin=min_auc,ymax=max_auc,geom='ribbon',fill=roiName,color=roiName,alpha=.8,group=scramble)+geom_line(linetype='dashed')+facet_wrap(~roiName,ncol=3)+fiftyline
+
+
+##ROI TR by TR: Train and test on all trs
+```{r load trbytr df}
+trbytr_file = sprintf('%s/aucSummary_trbytr.csv',dir)
+trbytr_df = read.csv(trbytr_file,header=T)
 ```
 
-##late trs
-```{r late violins}
-qplot(data=subset(excm_df,lateTrs==1),x=roiName,y=auc,geom='violin',fill=roiName,color=roiName,group=roiName,trim=F)+geom_point(color='black',stat='summary',fun.y='mean')+fiftyline
+```{r play with trbytr factors}
+trbytr_df$scramble = as.factor(trbytr_df$scramble)
+trbytr_df$conds_traintest = with(trbytr_df,paste(condNames, which_traintest))
+```
+
+```
+summary(trbytr_df)
+```
+
+```{r fix tr by tr weight variables}
+trCodes = c("1;0;0;0;0;0","0;1;0;0;0;0","0;0;1;0;0;0","0;0;0;1;0;0","0;0;0;0;1;0","0;0;0;0;0;1")
+ntrNames = length(trCodes)
+for (i in 1:6){
+  trbytr_df$trW[trbytr_df$trWeights==trCodes[i]]=i
+  trbytr_df$trW_train[trbytr_df$trWeights_train==trCodes[i]]=i
+  trbytr_df$trW_test[trbytr_df$trWeights_test==trCodes[i]]=i
+}
+trbytr_df$lateTrs = (trbytr_df$trWeights_train=="0;0;0.33;0.34;0.33;0")
+#trbytr_df$sameTr_trainTest = (trbytr_df$trWeights_train==trbytr_df$trWeights_test)
+
+```
+
+```{r summarize trbytr}
+
+trbytr_dfS<-ddply(trbytr_df,.(condNames,name,conds_traintest,which_traintest,trW,trW_train,trW_test,scramble,lateTrs,roiName),summarise,N=length(auc),mean_auc=mean(auc,na.rm=T),sd_auc = sd(auc,na.rm=T), sem_auc=sd_auc/sqrt(N),min_auc=mean_auc-sem_auc,max_auc=mean_auc+sem_auc)
 ```
 
 
+```{r trbytr plot ex cm, fig.width=15, fig.height =10,warning=F}
+trbytr_dfS$trSec = as.numeric(trbytr_dfS$trW_test)*2-1
+trbytr_dfS$trSec[trbytr_dfS$tr=='late'] = NA
+trbytr_dfS$train_test[trbytr_dfS$conds_traintest=='exHit;exCr 1;2;3;4;1;2;3;4']="EX, 4fold"
+trbytr_dfS$train_test[trbytr_dfS$conds_traintest=='hit;cr 1;1;1;1;2;2;2;2']='EX>CM'
+trbytr_dfS$roiLabel = factor(trbytr_dfS$roiName, labels = c("Left AnG", "Left MTL", "Left SPL","Right AnG","Right MTL", "Right SPL", "Whole brain"))
 
+plotMvpaTrRibbons(subset(trbytr_dfS, scramble == 0))+facet_wrap(~roiLabel)+
+  scale_fill_manual(values=cbPalette,name="Testing Data",breaks=c("EX, 4fold","EX>CM"),labels=c("EX (cross-validated)","CM"))+
+  scale_color_manual(values=cbPalette,name="Testing Data",breaks=c("EX, 4fold","EX>CM"),labels=c("EX (cross-validated)","CM"))+
+  labs(x="Time Post Stimulus Onset (s)", y="Classifier Performance (AUC)")
+
+```
+
+```{r trbytr histograms, fig.width=15, fig.height =10}
+
+qplot(data=subset(trbytr_df,  condNames=='hit;cr'),x=auc,group=interaction(roiName,trW_test,scramble),fill=as.factor(scramble),geom='bar',position='dodge',alpha=.5)+facet_wrap(~roiName+trW_test,ncol=6,scales='free')+plotformat
+```
+
+**Perhaps we should be increasing our power by using each iteration as an observation, rather than averaging and then comparing 24 observations**
+
+```{r trbytr stats}
+masks=levels(trbytr_df$roiName)
+pvals=''
+tvals=''
+names=''
+k=0
+for (j in 1:(length(masks)-1)){
+  for (i in 1:6){
+    k=k+1
+    test = t.test(auc~scramble,data=subset(trbytr_df, condNames=='hit;cr' & trW_test==i & roiName==masks[j]))
+    pvals[k]= test$p.value
+    tvals[k]= test$statistic
+    names[k]=sprintf('%s/%02d',masks[j],i)
+
+  }
+}
+cbind(names,pvals,tvals)
+
+masks=levels(trbytr_df$roiName)
+pvals=''
+tvals=''
+names=''
+k=0
+for (j in 1:(length(masks)-1)){
+  for (i in 1:6){
+    k=k+1
+    test = t.test(auc~scramble,data=subset(trbytr_df, condNames=='exHit;exCr' & trW_test==i & roiName==masks[j]))
+    pvals[k]= test$p.value
+    tvals[k]= test$statistic
+    names[k]=sprintf('%s/%02d',masks[j],i)
+
+  }
+}
+cbind(names,pvals,tvals)
+
+
+```
 
