@@ -24,7 +24,7 @@ Then, we'll **setup some plotting environment variables** that we'll use to cont
 cbPalette <- c( "#56B4E9","#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7","#999999", "#E69F00")
 
 #a dashed horizontal line to represent chance for binary classifiers
-fiftyline=stat_abline(intercept=.5,slope=0,linetype="dashed",color='black',size=1)
+fiftyline=stat_abline(intercept=.5,slope=0,linetype="dashed",color='black',size=.75,alpha=.9)
 
 #specify font size and face for axis labels and title
 plotformat=theme(title= element_text(size=17),axis.title = element_text(size=17),axis.text.x=element_text(size=15),axis.text.y=element_text(size=15), legend.text=element_text(size=20),strip.text.x = element_text(size = 17))+theme_classic()
@@ -98,7 +98,7 @@ plotUnivBetas <- function(pl_df){
 #setup a plot h showing mean betas by task and memory
 h<-ggplot(pl_df, aes(x=interaction(acc,task), y=mean_beta,ymin=min_beta,ymax=max_beta, fill = task))+#tells our plot what value to put on the x-axis and y-axis and to group values by task. If we tried to plot now, it would say "no layers in plot" and show nothing
    geom_bar(stat='identity',color='black')+
-  geom_errorbar(position=position_dodge(1), width=0, size=1.2, color='black')+#here's the meat of the plot. this specifies that we want points with error bars, tells it what values to use for the error bars, how big their should be, and that they should be 'dodged' by grouping on the x-axis
+  geom_errorbar(position=position_dodge(1), width=0, size=1, color='black')+#here's the meat of the plot. this specifies that we want points with error bars, tells it what values to use for the error bars, how big their should be, and that they should be 'dodged' by grouping on the x-axis
   scale_fill_manual(values=cbPalette,name="Task",breaks=c("ex","cm"),labels=c("Explicit","Countermeasures"))+
   labs(x="Memory",y="Parameter estimate")+#here we specify what the labels should be
 scale_x_discrete(breaks=c("hit.ex","cr.ex","hit.cm","cr.cm"),labels=c("Hit","CR","Hit","CR"))+
@@ -147,7 +147,7 @@ ips_betas_S=ddply(ips_betas_S,c("acc","task","roi","shape"),summarise,N=length(b
 
 ```
 
-```{r plot ips betas, fig.width=8, fig.height=4}
+```{r plot ips betas, fig.width=12, fig.height=4}
 univ_dfS_ms<-merge(univ_dfS,ips_betas_S,all=T)
 univ_dfS_ms<-subset(univ_dfS_ms,roi %in% c("Left Ang", "Left Hipp", "Left IPS"))
 univ_dfS_ms$roi = factor(univ_dfS_ms$roi, labels=c("Left AnG", "Left Hippocampus", "Left IPS"))
@@ -165,7 +165,11 @@ univ_df_ang_sphere = subset(univ_df, shape=='sphere' & roi=="Left Ang" & task=='
 summary(univ_df_ang_sphere)
 ang_sphere_cm_memsuccess = univ_df_ang_sphere$beta[univ_df_ang_sphere$acc=='hit']-univ_df_ang_sphere$beta[univ_df_ang_sphere$acc=='cr']
 cor.test(ang_sphere_cm_memsuccess,behav_df$cm_d)
-qplot(behav_df$cm_d,ang_sphere_cm_memsuccess,geom='smooth',method='lm')+geom_point(size=3, fill='white',shape=21)+labs(x="d' in CM task",y="Retrieval success effects in CM task")+plotformat+geom_abline(intercept=0,slope=0,linetype='dotted')+geom_vline(x=0,linetype='dotted')
+
+h<-qplot(behav_df$cm_d,ang_sphere_cm_memsuccess,geom='smooth',method='lm')+geom_point(size=3, fill='white',shape=21)+labs(x="Memory performance in CM task (d')",y="Retrieval success effects in CM task")+plotformat+geom_abline(intercept=0,slope=0,linetype='dashed')+geom_vline(x=0,linetype='dashed')
+
+h+coord_equal(ratio=2.4/2.25,xlim=c(-.25,2.15),ylim=c(-1.75,.5))
+  
 
 ```
 
@@ -179,7 +183,8 @@ univ_df_ang_clus = subset(univ_df, shape=='cluster' & roi=="Left Ang" & task=='c
 summary(univ_df_ang_clus)
 ang_clus_cm_memsuccess = univ_df_ang_clus$beta[univ_df_ang_clus$acc=='hit']-univ_df_ang_clus$beta[univ_df_ang_clus$acc=='cr']
 cor.test(ang_clus_cm_memsuccess,behav_df$cm_d)
-qplot(behav_df$cm_d,ang_clus_cm_memsuccess,geom='smooth',method='lm')+geom_point(size=3.5, fill='white',shape=21)+labs(x="d' in CM task",y="Retrieval success effects in CM task")+plotformat+geom_abline(intercept=0,slope=0,linetype='dashed')+geom_vline(x=0,linetype='dashed')
+
+qplot(behav_df$cm_d,ang_clus_cm_memsuccess,geom='smooth',method='lm')+geom_point(size=3.5, fill='white',shape=21)+labs(x="Memory performance in CM task (d')",y="Retrieval success effects in CM task")+plotformat+geom_abline(intercept=0,slope=0,linetype='dashed')+geom_vline(x=0,linetype='dashed')+coord_equal(xlim=c(-.27,2.1),ylim=c(-1.87,.5))
 
 
 ````
@@ -227,7 +232,7 @@ plotMvpaViolin <- function(pl_df){
 plotMvpaTrRibbons <- function(pl_df){
   h<-ggplot(pl_df, aes(x=trSec,y=mean_auc,ymin=min_auc,ymax=max_auc, group=train_test, fill=train_test, color=train_test)) +
      geom_ribbon(alpha=.65) + 
-    geom_line(linetype="longdash")+
+    geom_line(linetype="longdash", size =1)+
     fiftyline+geom_vline(xintercept=0, linetype="dotted")+
     theme_bw() +
     plotformat+
@@ -337,9 +342,9 @@ grid <- with(mvpa_accbyconf_df, expand.grid(
 ))
 grid$acc<-stats::predict(model,newdata=grid)
 
-confacc_plt<-ggplot(mvpa_accbyconf_df,aes(x=bin_num,y=acc,group=name,color=name))+plotformat+labs(x='Percentile confidence bin',y=expression("p(Classifier correct)"),title="Classifier accuracy by confidence")+theme(axis.text.x  = element_text(angle=45, vjust=0.5))
+confacc_plt<-ggplot(mvpa_accbyconf_df,aes(x=bin_num,y=acc,group=name,color=name))+plotformat+labs(x='Percentile confidence bin',y=expression("p(Classifier correct)"),title="Classifier accuracy\nby confidence")+theme(axis.text.x  = element_text(angle=70, vjust=0.5))
 
-confacc_plt+geom_pointrange(data=confacc_ag,aes(x=bin_num,y=mean_acc,ymin=min_acc,ymax=max_acc),size=.85)+  geom_line(data=grid,size=.75) + scale_x_continuous(labels=mvpa_accbyconf_df$bin_name[seq(1,20,2)],breaks=seq(1,20,2))+scale_color_discrete(breaks=c("extocm_late","extocm_tr3","extoex_late"),labels=c("EX>CM, late TRs", "EX>CM, 3rd TR","EX, (cross-validated), late TRs"),name='Classifier')
+confacc_plt+geom_pointrange(data=confacc_ag,aes(x=bin_num,y=mean_acc,ymin=min_acc,ymax=max_acc),size=.85)+  geom_line(data=grid,size=.75) + scale_x_continuous(labels=mvpa_accbyconf_df$bin_name[seq(1,20,2)],breaks=seq(1,20,2))+scale_color_discrete(breaks=c("extocm_late","extocm_tr3","extoex_late"),labels=c("EX>CM, late TRs", "EX>CM, 3rd TR","EX (cross-validated), late TRs"),name='Classifier')
 ```
 
 
@@ -366,7 +371,7 @@ with(excmtr3,cor.test(auc,cm_d))
 
 ```{r plot correlation between auc and cm d}
 #plot them
-ggplot(excmtr3,aes(y=auc,x=cm_d))+geom_smooth(method="lm")+geom_point(size=3,fill='white',shape=21)+plotformat+labs(y="EX>CM Classifier Performance (AUC)",x="CM Memory Performance (d')")
+ggplot(excmtr3,aes(y=auc,x=cm_d))+geom_smooth(method="lm")+geom_point(size=3,fill='white',shape=21)+plotformat+labs(y="EX>CM Classifier Performance (AUC)",x="Memory performance in CM task (d')")+coord_fixed(ratio=2.37/.5,xlim=c(-.27,2.1),ylim=c(.3,.8))
 
 ```
 
@@ -480,10 +485,9 @@ plotMvpaTrRibbons(subset(trsweep_dfS,trW_train==3 & scramble == 0))+facet_wrap(~
   scale_fill_manual(values=cbPalette,name="Testing Data",breaks=c("EX, 2fold","EX>CM"),labels=c("EX (cross-validated)","CM"))+
   scale_color_manual(values=cbPalette,name="Testing Data",breaks=c("EX, 2fold","EX>CM"),labels=c("EX (cross-validated)","CM"))+
   labs(x="Time Post Stimulus Onset (s)", y="Classifier Performance (AUC)")
-
-
-
 ```
+
+*NOTE: EX>EX here is 2-fold cross-validated (as opposed to 4-fold)*
 
 ```{r tr sweep histograms, fig.width=15, fig.height =10}
 
