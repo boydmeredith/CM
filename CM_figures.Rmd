@@ -115,44 +115,46 @@ facet_wrap(~roi+Contrast+shape,scales='free_y')#We'll 'facet' by the remaining f
 ```
 
 ##Fig 2. Task x Memory Interaction 
-Here is the same plot, using the subset of the data that we present in the manuscript
-```{r ms univ plot, fig.width=10, fig.height=3}
-univ_dfS_ms = subset(univ_dfS, shape=='sphere' & roi %in% c("Left Ang","Right IPS","Left Hipp"))
-plotUnivBetas(univ_dfS_ms)+ facet_wrap(~roi+Contrast+shape,scales='free_y')#We'll 'facet' by the remaining factors, thereby making a separate plot for each combo of the factors. Note that we have to specify that y axis can be different in each facet. Now, we've got something we can actually think about plotting. 
- 
+Hmmm... we're actually going to want some more information on ips clusters, so let's assemble that.
+```{r load ips clusters}
+lIps_file = sprintf('%s/lIpsBetas.csv',dir)
+lIps_dat = read.csv(lIps_file,header=T)
 ```
 
-In light of the fact that we'll use clusters in the next section, we'll plot the same thing using clusters here
-```{r load ips clusters}
-rIps_file = sprintf('%s/rIpsBetas.csv',dir)
-lIps_file = sprintf('%s/lIpsBetas.csv',dir)
-rIps_df = read.csv(rIps_file,header=T)
-lIps_df = read.csv(lIps_file,header=T)
-rIps_df$shape = 'cluster'
-lIps_df$shape = 'cluster'
-rIps_df$roi = 'Right IPS'
-lIps_df$roi = 'Left IPS'
-ips_betas = rbind(rIps_df,lIps_df)
-ips_betas = melt(ips_betas)
+```{r clean up ips cluster data frames}
+#label roi info
+lIps_dat$shape = 'cluster'
+lIps_dat$roi = 'Left IPS'
+#reshape into data frame
+ips_betas = melt(lIps_dat)
+#label subject numbers
 ips_betas$subNo = c(1,3:10,12:26)
+#label the task and memory accuracy in the data
 ips_betas$task[grepl('Explicit',ips_betas$variable)]='ex'
 ips_betas$task[grepl('CM',ips_betas$variable)]='cm'
 ips_betas$acc[grepl('Hit',ips_betas$variable)]='hit'
 ips_betas$acc[grepl('CR',ips_betas$variable)]='cr'
+#reorder factors for plotting
 ips_betas$acc = factor(ips_betas$acc,levels=c('hit','cr'))
 ips_betas$task = factor(ips_betas$task,levels=c('ex','cm'))
-ips_betas_S = aggregate(value~acc+task+subNo+roi+shape,ips_betas,mean)
-ips_betas_S$beta=ips_betas_S$value
-ips_betas_S=ddply(ips_betas_S,c("acc","task","roi","shape"),summarise,N=length(beta),mean_beta=mean(beta),sd_beta = sd(beta), sem_beta=sd_beta/sqrt(N), min_beta = mean_beta-sem_beta, max_beta = mean_beta+sem_beta)
-
 ```
 
-```{r plot ips betas, fig.width=12, fig.height=4}
+```{r summarize and merge ips betas with univariate df}
+#summarize the data, getting the means, etc of beta values and merge with other data frame
+#first average across the race variable (not referenced explicitly here)
+ips_betas_S = aggregate(value~acc+task+subNo+roi+shape,ips_betas,mean)
+ips_betas_S$beta=ips_betas_S$value
+#summarize by accuracy, task, roi, shape for use in plot
+ips_betas_S=ddply(ips_betas_S,c("acc","task","roi","shape"),summarise,N=length(beta),mean_beta=mean(beta),sd_beta = sd(beta), sem_beta=sd_beta/sqrt(N), min_beta = mean_beta-sem_beta, max_beta = mean_beta+sem_beta)
+#merge new data frame with existing data frame
 univ_dfS_ms<-merge(univ_dfS,ips_betas_S,all=T)
+#choose the subset of the data corresponding to the rois we actually want to put into the plot
 univ_dfS_ms<-subset(univ_dfS_ms,roi %in% c("Left Ang", "Left Hipp", "Left IPS"))
 univ_dfS_ms$roi = factor(univ_dfS_ms$roi, labels=c("Left AnG", "Left Hippocampus", "Left IPS"))
-plotUnivBetas(subset(univ_dfS_ms, shape=='cluster'))+facet_wrap(~roi,scales='free_y')
+```
 
+```{r plot betas in rois for ms,  fig.width=12, fig.height=4}
+plotUnivBetas(subset(univ_dfS_ms, shape=='cluster'))+facet_wrap(~roi,scales='free_y')
 ```
 
 
@@ -173,7 +175,7 @@ h+coord_equal(ratio=2.4/2.25,xlim=c(-.25,2.15),ylim=c(-1.75,.5))
 
 ```
 
-###This correlation is NOT significant at $p<.05$, when we use the *sphere* that produced the data above (for the bar graph). However, it is significant when we use the *cluster* and a one-tailed test.
+note: This correlation is NOT significant at $p<.05$, when we use the *sphere* that produced the data above (for the bar graph). However, it is significant when we use the *cluster* and a one-tailed test.
 
 
 ```{r correlation cm d prime and ang fx cluster}
