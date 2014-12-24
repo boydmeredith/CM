@@ -6,6 +6,9 @@ function subjects_tc = CM_batch_FIR_marsbar(contrast, saveit)
 %(open marsbar, 'ROI definition', call 2nd level SPM.mat of interest,'Write ROIs')
 %THEN MODIFY 'ROI_FILE' VARIABLE IN THIS SCRIPT AS NEEDED FOR EACH ROI
 %written by Melina Uncapher 5/23/08, adapted from Matthew Brett's scripts
+
+addpath(genpath('/Applications/spm8/toolbox/marsbar'))
+
 if nargin < 1
     contrast = 'Task Effects (Explicit Memory Runs_CM Runs) x (Hits_CRs)';
 end
@@ -14,7 +17,7 @@ if nargin < 2
     saveit = 1;
 end
 
-FIR_LENGTH = 16;
+FIR_LENGTH = 20;
 
 FMRI_DIR = '/Users/Jesse/fMRI/COUNTERMEASURES/Data/Functional';
 ROI_DIR = fullfile(FMRI_DIR, 'Masks');
@@ -22,17 +25,19 @@ GROUP_DIR = '/Users/Jesse/fMRI/COUNTERMEASURES/Group_analyses_univariate';
 MODEL_DIR = fullfile(GROUP_DIR, 'Model2/Test');
 SAVE_NAME = 'subjects_tc_rois.mat';
 CONDS = {'AA_Explicit_Hit' 'EA_Explicit_Hit' 'AA_CM_Hit' 'EA_CM_Hit'...
-    'AA_Explicit_CR' 'EA_Explicit_CR' 'AA_CM_CR' 'EA_CM_CR'};
+    'AA_Explicit_CR' 'EA_Explicit_CR' 'AA_CM_CR' 'EA_CM_CR'...
+    'AA_Explicit_Miss' 'EA_Explicit_Miss' 'AA_CM_Miss' 'EA_CM_Miss'...
+    'AA_Explicit_FA' 'EA_Explicit_FA' 'AA_CM_FA' 'EA_CM_FA'};
 SUBJ_ARR = [1,3:10,12:26];
 subjno_to_id = @(x) sprintf('CM%03d',x);
 subjno_to_analysisdir = @(x) fullfile(FMRI_DIR, subjno_to_id(x), 'Results_model2/Test');
 
 analysis_dir = fullfile(MODEL_DIR, contrast);
 
-SUBJ_ARR = 1
+SUBJ_ARR = [1 3:10 12:26]
 
 
-roi_names = {'rleftMtlMask_tbm112514.nii'}%, 'rleftSplMask_tbm112514.nii', 'rleftAngMask_tbm112514.nii'};
+roi_names = {'rleft_AnG_anat_roi.mat'}%, 'rleftSplMask_tbm112514.nii', 'rleftAngMask_tbm112514.nii'};
 
 for isubj=1:length(SUBJ_ARR)
     subjno = SUBJ_ARR(isubj);
@@ -51,7 +56,7 @@ for isubj=1:length(SUBJ_ARR)
         roi_file = fullfile(ROI_DIR, roi_names{jclus});
         
         % Make marsbar ROI object
-        R  = maroi_image(roi_file);
+        R  = maroi(roi_file);
         
         % Fetch data into marsbar data object
         Y  = get_marsy(R, D, 'mean');
@@ -69,7 +74,7 @@ for isubj=1:length(SUBJ_ARR)
         n_events = size(e_specs, 2);
         
         % Bin size in seconds for FIR
-        bin_sz = tr(E);
+        bin_sz = tr(E)/2;
         
         % Length of FIR in seconds
         FIR_LENGTH = 16;
@@ -82,11 +87,6 @@ for isubj=1:length(SUBJ_ARR)
         
         fir_tc = [];
         % Return time courses for all events in fir_tc matrix
-        for e_s = 1:n_events
-            fir_tc(:, e_s) = event_fitted_fir(E, e_specs(:,e_s), bin_sz, ...
-                nbins, opts);
-        end
-        
         for kcond = 1:length(CONDS)
             e_s = find(strcmp(CONDS{kcond}, e_names));
             
@@ -124,8 +124,35 @@ for isubj=1:length(SUBJ_ARR)
     
 end
 
+clear w_roi meanAct steAct
+
+cols = cool(length(CONDS))
+for j=1:length(roi_names)
+    for i=1:length(subjects_tc)
+        w_roi{j}.mat(i,:,:) = subjects_tc(i).rois(j).raw;
+        %w_roi{j}.mat(i,:,idxEnoughTrials(i,:)) = NaN; %not large enough to count.
+    end
+
+    meanAct = squeeze(nanmean(w_roi{j}.mat,1));
+    steAct = squeeze(nanstd(w_roi{j}.mat,1))/sqrt(14);
+    
+    figure('position',[200 200 200 200]); hold on
+    
+    set(gcf, 'PaperPositionMode', 'manual');
+    set(gcf, 'PaperUnits', 'inches');
+    set(gcf, 'PaperPosition', [.5 .5 2 2]); % last 2 are width/height.
+    
+    for l=1:length(CONDS)
+        errorbar(meanAct(:,l), steAct(:,l), 'Color', cols(l,:), 'LineWidth', 1.5)
+        a_h = gca;
+        set(a_h,'FontSize',12)
+        xlim([0 11])
+        set(gca,'XTick',[1:2:11'])
+        set(gca,'XTickLabel',[1:4:21])
+    end
 
 
+end
 
 
 
