@@ -241,6 +241,22 @@ plotMvpaTrRibbons <- function(pl_df){
 }
 ```
 
+####function to fix tr info in mvpa dfs
+```{r fix tr}
+fixTrInMvpaDf<-function(df){
+trCodes = c("1;0;0;0;0;0","0;1;0;0;0;0","0;0;1;0;0;0","0;0;0;1;0;0","0;0;0;0;1;0","0;0;0;0;0;1")
+ntrNames = length(trCodes)
+for (i in 1:6){
+  df$trW[df$trWeights==trCodes[i]]=i
+  df$trW_train[df$trWeights_train==trCodes[i]]=i
+  df$trW_test[df$trWeights_test==trCodes[i]]=i
+}
+df$lateTrs = (df$trWeights_train=="0;0;0.33;0.34;0.33;0")
+df$trSec = as.numeric(df$trW_test)*2-1
+return(df)
+}
+```
+
 ##Fig 4A. EX>EX & EX>CM Violins
 
 ```{r plot train_ex violins }
@@ -455,28 +471,18 @@ summary(trsweep_df)
 ```
 
 ```{r fix tr weight variables}
-trCodes = c("1;0;0;0;0;0","0;1;0;0;0;0","0;0;1;0;0;0","0;0;0;1;0;0","0;0;0;0;1;0","0;0;0;0;0;1")
-ntrNames = length(trCodes)
-for (i in 1:6){
-  trsweep_df$trW[trsweep_df$trWeights==trCodes[i]]=i
-  trsweep_df$trW_train[trsweep_df$trWeights_train==trCodes[i]]=i
-  trsweep_df$trW_test[trsweep_df$trWeights_test==trCodes[i]]=i
-}
-trsweep_df$lateTrs = (trsweep_df$trWeights_train=="0;0;0.33;0.34;0.33;0")
-#trsweep_df$sameTr_trainTest = (trsweep_df$trWeights_train==trsweep_df$trWeights_test)
-
+trsweep_df = fixTrInMvpaDf(trsweep_df)
 ```
 
 ```{r summarize ex cm}
 
-trsweep_dfS<-ddply(trsweep_df,.(condNames,name,conds_traintest,which_traintest,trW,trW_train,trW_test,scramble,lateTrs,roiName),summarise,N=length(auc),mean_auc=mean(auc,na.rm=T),sd_auc = sd(auc,na.rm=T), sem_auc=sd_auc/sqrt(N),min_auc=mean_auc-sem_auc,max_auc=mean_auc+sem_auc)
+trsweep_dfS<-ddply(trsweep_df,.(condNames,name,conds_traintest,which_traintest,trW,trW_train,trW_test,scramble,lateTrs,trSec,roiName),summarise,N=length(auc),mean_auc=mean(auc,na.rm=T),sd_auc = sd(auc,na.rm=T), sem_auc=sd_auc/sqrt(N),min_auc=mean_auc-sem_auc,max_auc=mean_auc+sem_auc)
 ```
 
 
 ```{r tr sweep plot ex cm, fig.width=15, fig.height =10,warning=F}
 
-trsweep_dfS$trSec = as.numeric(trsweep_dfS$trW_test)*2-1
-trsweep_dfS$trSec[trsweep_dfS$tr=='late'] = NA
+
 trsweep_dfS$train_test[trsweep_dfS$condNames=='exHit;exCr']="EX, 2fold"
 trsweep_dfS$train_test[trsweep_dfS$condNames=='hit;cr']='EX>CM'
 trsweep_dfS$roiLabel = factor(trsweep_dfS$roiName, labels = c("Left AnG", "Left MTL", "Left SPL","Right AnG","Right MTL", "Right SPL", "Whole brain"))
@@ -534,26 +540,18 @@ summary(trbytr_df)
 ```
 
 ```{r fix tr by tr weight variables}
-trCodes = c("1;0;0;0;0;0","0;1;0;0;0;0","0;0;1;0;0;0","0;0;0;1;0;0","0;0;0;0;1;0","0;0;0;0;0;1")
-ntrNames = length(trCodes)
-for (i in 1:6){
-  trbytr_df$trW[trbytr_df$trWeights==trCodes[i]]=i
-  trbytr_df$trW_train[trbytr_df$trWeights_train==trCodes[i]]=i
-  trbytr_df$trW_test[trbytr_df$trWeights_test==trCodes[i]]=i
-}
-trbytr_df$lateTrs = (trbytr_df$trWeights_train=="0;0;0.33;0.34;0.33;0")
-#trbytr_df$sameTr_trainTest = (trbytr_df$trWeights_train==trbytr_df$trWeights_test)
-
+  
+trbytr_df=fixTrInMvpaDf(trbytr_df)
 ```
 
 ```{r summarize trbytr}
 
-trbytr_dfS<-ddply(trbytr_df,.(condNames,name,conds_traintest,which_traintest,trW,trW_train,trW_test,scramble,lateTrs,roiName),summarise,N=length(auc),mean_auc=mean(auc,na.rm=T),sd_auc = sd(auc,na.rm=T), sem_auc=sd_auc/sqrt(N),min_auc=mean_auc-sem_auc,max_auc=mean_auc+sem_auc)
+trbytr_dfS<-ddply(trbytr_df,.(condNames,name,conds_traintest,which_traintest,trW,trW_train,trW_test,trSec,scramble,lateTrs,roiName),summarise,N=length(auc),mean_auc=mean(auc,na.rm=T),sd_auc = sd(auc,na.rm=T), sem_auc=sd_auc/sqrt(N),min_auc=mean_auc-sem_auc,max_auc=mean_auc+sem_auc)
 ```
 
 
 ```{r trbytr plot ex cm, fig.width=15, fig.height =10,warning=F}
-trbytr_dfS$trSec = as.numeric(trbytr_dfS$trW_test)*2-1
+
 trbytr_dfS$trSec[trbytr_dfS$tr=='late'] = NA
 trbytr_dfS$train_test[trbytr_dfS$conds_traintest=='exHit;exCr 1;2;3;4;1;2;3;4']="EX, 4fold"
 trbytr_dfS$train_test[trbytr_dfS$conds_traintest=='hit;cr 1;1;1;1;2;2;2;2']='EX>CM'
