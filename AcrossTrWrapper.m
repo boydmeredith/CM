@@ -1,42 +1,39 @@
-mask = {'rleftMtlMask_tbm112514.nii' 'rleftSplMask_tbm112514.nii' 'rleftAngMask_tbm112514.nii' 'rightMtlMask_tbm112514.nii' 'rrightSplMask_tbm112514.nii'  'rrightAngMask_tbm112514.nii'};
-mask = { 'rrightMtlMask_tbm112514.nii' 'rrightSplMask_tbm112514.nii'  'rrightAngMask_tbm112514.nii'};
+mask = {'rmotorMask_locerebellum_spmMaskminusSEPT09.img' 'SEPT09_MVPA_MASK_resliced4mm.nii' 'rleftMtlMask_tbm112514.nii' 'rleftSplMask_tbm112514.nii' 'rleftAngMask_tbm112514.nii' 'rrightMtlMask_tbm112514.nii' 'rrightSplMask_tbm112514.nii'  'rrightAngMask_tbm112514.nii'};
+%should probably repeat with 'rleftIfgAnat.nii', 'rleftBa44_45_47anat.nii'
+masksToClassify = mask(6:end)
+%classify late trs for all remaining rois
+for scram = 0:1
+   for j = 1:length(masksToClassify)
+        
+        %all rois for late trs
+        CM_run_mvpa_v4_tbm([],'','which_traintest',[1 2 3 4 1 2 3 4 ],'condNames',{'exHit' 'exCr'},'scramble', scram,'roiName',masksToClassify{j})
+        CM_run_mvpa_v4_tbm([],'','which_traintest',[1 1 1 1 2 2 2 2],'condNames',{'hit' 'cr'},'scramble',scram,'roiName',masksToClassify{j})
+        
+    end
+end
+cd('~/cm/Data/Functional/mvpa_results/')
+%all late rois
+CM_batchMvpaPostProc({'*ex*ex*1_2_3_4_1_2_3_4*33*mat' '*hitVcr*1_1_1_1_2_2_2_2*33*mat'}, 'allrois_latetrs',pwd,0, {[], 2})
 
-for j = 1:length(mask)
-     for i = [1:6]
-         for scram = 0:1
+mask = {'rmotorMask_locerebellum_spmMaskminusSEPT09.img' 'SEPT09_MVPA_MASK_resliced4mm.nii' 'rleftMtlMask_tbm112514.nii' 'rleftSplMask_tbm112514.nii' 'rleftAngMask_tbm112514.nii' 'rrightMtlMask_tbm112514.nii' 'rrightSplMask_tbm112514.nii'  'rrightAngMask_tbm112514.nii'};
+
+%classify trs 3:6 for whole brain roi and motor roi
+masksToClassify= mask(1:2)
+
+for scram = 0:1      
+     for i = [3:6]
+         for j = 1:length(masksToClassify)
              testTrs = zeros(1,6);
              testTrs(i) = 1
-             %CM_run_mvpa_v4_tbm([],'','which_traintest',[1 1 2 2 1 1 2 2],'condNames',{'exHit' 'exCr'},'trWeights_train',[0 0 1 0 0 0], 'trWeights_test',testTrs,'num_results_iter',1)
-             CM_run_mvpa_v4_tbm([],'','which_traintest',[1 1 2 2 1 1 2 2],'condNames',{'exHit' 'exCr'},'trWeights_train',[0 0 1 0 0 0], 'trWeights_test',testTrs,'roiName',mask{j},'scramble', scram)
-             %CM_run_mvpa_v4_tbm([],'','which_traintest',[1 1 1 1 2 2 2 2],'condNames',{'hit' 'cr'},'trWeights_train',[0 0 1 0 0 0], 'trWeights_test',testTrs,'num_results_iter',1)
-             CM_run_mvpa_v4_tbm([],'','which_traintest',[1 1 1 1 2 2 2 2],'condNames',{'hit' 'cr'},'trWeights_train',[0 0 1 0 0 0], 'trWeights_test',testTrs,'roiName',mask{j},'scramble',scram)
+             CM_run_mvpa_v4_tbm([],'','which_traintest',[1 2 3 4 1 2 3 4 ],'condNames',{'exHit' 'exCr'},'trWeights_train',testTrs, 'trWeights_test',testTrs,'scramble', scram,'roiName',masksToClassify{j})
+             if i > 3
+                CM_run_mvpa_v4_tbm([],'','which_traintest',[1 1 1 1 2 2 2 2],'condNames',{'hit' 'cr'},'trWeights_train',testTrs, 'trWeights_test',testTrs,'scramble',scram,'roiName',masksToClassify{j})
+             end
          end
      end
- end
+end
 
-toproc = {'conds_exHitVexCr_trTe1_1_2_2_1_1_2_2_trWtr0__0__1__0__0__0_te1__0__0__0__0__0_roiSEPT09_MVPA_MASK_resliced4mm.mat'
-'conds_exHitVexCr_trTe1_1_2_2_1_1_2_2_trWtr0__0__1__0__0__0_te1__0__0__0__0__0_roirleftAngMask_tbm112514.mat'
-'conds_hitVcr_trTe1_1_1_1_2_2_2_2_trWtr0__0__1__0__0__0_te1__0__0__0__0__0_roiSEPT09_MVPA_MASK_resliced4mm.mat'
-'conds_hitVcr_trTe1_1_1_1_2_2_2_2_trWtr0__0__1__0__0__0_te1__0__0__0__0__0_roirleftAngMask_tbm112514.mat'
-'conds_exHitVexCr_trTe1_1_2_2_1_1_2_2_trWtr0__0__1__0__0__0_te0__0__1__0__0__0_roiSEPT09_MVPA_MASK_resliced4mm.mat'
-'conds_exHitVexCr_trTe1_1_2_2_1_1_2_2_trWtr0__0__1__0__0__0_te0__0__1__0__0__0_roirleftAngMask_tbm112514.mat'
-'conds_hitVcr_trTe1_1_1_1_2_2_2_2_trWtr0__0__1__0__0__0_te0__0__1__0__0__0_roiSEPT09_MVPA_MASK_resliced4mm.mat'
-'conds_hitVcr_trTe1_1_1_1_2_2_2_2_trWtr0__0__1__0__0__0_te0__0__1__0__0__0_roirleftAngMask_tbm112514.mat'
-'conds_exHitVexCr_trTe1_1_2_2_1_1_2_2_trWtr0__0__1__0__0__0_te0__0__0__0__0__1_roiSEPT09_MVPA_MASK_resliced4mm.mat'
-'conds_exHitVexCr_trTe1_1_2_2_1_1_2_2_trWtr0__0__1__0__0__0_te0__0__0__0__0__1_roirleftAngMask_tbm112514.mat'
-'conds_hitVcr_trTe1_1_1_1_2_2_2_2_trWtr0__0__1__0__0__0_te0__0__0__0__0__1_roiSEPT09_MVPA_MASK_resliced4mm.mat'
-'conds_hitVcr_trTe1_1_1_1_2_2_2_2_trWtr0__0__1__0__0__0_te0__0__0__0__0__1_roirleftAngMask_tbm112514.mat'
-
-'conds_exHitVexCr_trTe1_1_2_2_1_1_2_2_trWtr0__0__1__0__0__0_te0__0__0__0__1__0_roiSEPT09_MVPA_MASK_resliced4mm.mat'
-'conds_exHitVexCr_trTe1_1_2_2_1_1_2_2_trWtr0__0__1__0__0__0_te0__0__0__0__1__0_roirleftAngMask_tbm112514.mat'
-'conds_hitVcr_trTe1_1_1_1_2_2_2_2_trWtr0__0__1__0__0__0_te0__0__0__0__1__0_roiSEPT09_MVPA_MASK_resliced4mm.mat'
-'conds_hitVcr_trTe1_1_1_1_2_2_2_2_trWtr0__0__1__0__0__0_te0__0__0__0__1__0_roirleftAngMask_tbm112514.mat'
-'conds_exHitVexCr_trTe1_1_2_2_1_1_2_2_trWtr0__0__1__0__0__0_te0__0__0__1__0__0_roiSEPT09_MVPA_MASK_resliced4mm.mat'
-'conds_exHitVexCr_trTe1_1_2_2_1_1_2_2_trWtr0__0__1__0__0__0_te0__0__0__1__0__0_roirleftAngMask_tbm112514.mat'
-'conds_hitVcr_trTe1_1_1_1_2_2_2_2_trWtr0__0__1__0__0__0_te0__0__0__1__0__0_roiSEPT09_MVPA_MASK_resliced4mm.mat'
-'conds_hitVcr_trTe1_1_1_1_2_2_2_2_trWtr0__0__1__0__0__0_te0__0__0__1__0__0_roirleftAngMask_tbm112514.mat'
-'conds_exHitVexCr_trTe1_1_2_2_1_1_2_2_trWtr0__0__1__0__0__0_te0__1__0__0__0__0_roiSEPT09_MVPA_MASK_resliced4mm.mat'
-'conds_exHitVexCr_trTe1_1_2_2_1_1_2_2_trWtr0__0__1__0__0__0_te0__1__0__0__0__0_roirleftAngMask_tbm112514.mat'
-'conds_hitVcr_trTe1_1_1_1_2_2_2_2_trWtr0__0__1__0__0__0_te0__1__0__0__0__0_roiSEPT09_MVPA_MASK_resliced4mm.mat'
-'conds_hitVcr_trTe1_1_1_1_2_2_2_2_trWtr0__0__1__0__0__0_te0__1__0__0__0__0_roirleftAngMask_tbm112514.mat'
-}
+%process it all
+cd('~/cm/Data/Functional/mvpa_results/')
+%trbytr whole brain and motor
+CM_batchMvpaPostProc({'*ex*ex*1_2_3_4_1_2_3_4*locer*mat' '*ex*ex*1_2_3_4_1_2_3_4*SEPT*mat' '*hitVcr*1_1_1_1_2_2_2_2*locer*mat' '*hitVcr*1_1_1_1_2_2_2_2*SEPT*mat'}, 'wb_motor_trbytr',pwd,0, {[],[],2, 2})
