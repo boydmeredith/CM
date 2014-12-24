@@ -472,18 +472,22 @@ masks=levels(trsweep_df$roiName)
 pvals=''
 tvals=''
 names=''
+mean_auc=''
+scram_mean_auc=''
 k=0
 for (j in 1:length(masks)){
   for (i in 1:6){
     k=k+1
-    test = t.test(auc~scramble,data=subset(trsweep_df, trW_train==3  & condNames=='hit;cr' & trW_test==i & roiName==masks[j]))
+    test = t.test(auc~scramble,data=subset(trsweep_df, trW_train==3  & condNames=='hit;cr' & trW_test==i & roiName==masks[j]),paired=T)
     pvals[k]= test$p.value
+    mean_auc[k]= mean(with(trsweep_df, auc[scramble==0 & trW_train==3  & condNames=='hit;cr' & trW_test==i & roiName==masks[j]]))
+        scram_mean_auc[k]= mean(with(trsweep_df, auc[scramble==1 & trW_train==3  & condNames=='hit;cr' & trW_test==i & roiName==masks[j]]))
     tvals[k]= test$statistic
     names[k]=sprintf('%s/%02d',masks[j],i)
 
   }
 }
-cbind(names,pvals,tvals)
+cbind(names,pvals,tvals, mean_auc, scram_mean_auc)
 
 ```
 
@@ -545,7 +549,7 @@ k=0
 for (j in 1:(length(masks)-1)){
   for (i in 1:6){
     k=k+1
-    test = t.test(auc~scramble,data=subset(trbytr_df, condNames=='hit;cr' & trW_test==i & roiName==masks[j]))
+    test = t.test(auc~scramble,data=subset(trbytr_df, condNames=='hit;cr' & trW_test==i & roiName==masks[j]),paired=T)
     pvals[k]= test$p.value
     tvals[k]= test$statistic
     names[k]=sprintf('%s/%02d',masks[j],i)
@@ -562,7 +566,7 @@ k=0
 for (j in 1:(length(masks)-1)){
   for (i in 1:6){
     k=k+1
-    test = t.test(auc~scramble,data=subset(trbytr_df, condNames=='exHit;exCr' & trW_test==i & roiName==masks[j]))
+    test = t.test(auc~scramble,data=subset(trbytr_df, condNames=='exHit;exCr' & trW_test==i & roiName==masks[j]),paired=T)
     pvals[k]= test$p.value
     tvals[k]= test$statistic
     names[k]=sprintf('%s/%02d',masks[j],i)
@@ -574,3 +578,61 @@ cbind(names,pvals,tvals)
 
 ```
 
+#Other useful stats
+##How does EX>CM decoding compare to chance
+```{r ex to cm}
+excmscram = read.csv(sprintf('%s/aucSummary_wb_excm_late_scram.csv',dir),header=T)
+t.test(with(mvpa_df,auc[train_test=='EX>CM' & tr=='late']), with(excmscram,auc[scramble==1]),paired=T)
+```
+
+##How does EX>EX decoding compare to chance
+```{r ex to ex}
+exexscram = read.csv(sprintf('%s/aucSummary_wb_late_exex_scram.csv',dir),header=T)
+t.test(with(mvpa_df,auc[train_test=='EX,4fold' & tr=='late']), with(exexscram,auc[scramble==1]),paired=T)
+```
+
+
+##How does CM>EX decoding compare to chance
+```{r cm to ex}
+cmexscram = read.csv(sprintf('%s/aucSummary_cmtoex_late.csv',dir),header=T)
+t.test(with(mvpa_df,auc[train_test=='CM>EX' & tr=='late']), with(cmexscram,auc[scramble==1]),paired=T)
+```
+##How does CM>CM decoding compare to chance
+
+```{r cm to cm vs scram}
+cmcmscram= read.csv(sprintf('%s/aucSummary_cmtocm_late_wb.csv',dir),header=T)
+t.test(with(mvpa_df,auc[train_test=='CM,4fold' & tr=='late']), with(cmcmscram,auc[scramble==1]),paired=T)
+```
+
+##How do CM>CM and EX>EX decoding compare?
+```{r cm to cm vs ex to ex decoding}
+t.test(auc~train_test,data=subset(latetrs_mvpa_df, train_test %in% c('EX,4fold','CM,4fold') & tr=='late'),paired=T)
+```
+
+##How does EX>CM at TR3 compare to chance?
+```{r tr 3 ex to cm v chance}
+excmtr3S= read.csv(sprintf('%s/aucSummary_wb_tr3_excm_scram_unscram.csv',dir),header=T)
+t.test(auc~scramble,data=excmtr3S,paired=T)
+```
+
+##What about other Tr by tr analyses?
+```{r }
+excmtrs_scram= read.csv(sprintf('%s/aucSummary_wb_trbytr_excm_scrambled.csv',dir),header=T)
+exextrs_scram= read.csv(sprintf('%s/aucSummary_wb_trbytr_exex_scrambled.csv',dir),header=T)
+
+exextrs_scram=fixTrInMvpaDf(exextrs_scram)
+t.test(with(mvpa_df, auc[tr==1 & train_test=='EX,4fold']),with(exextrs_scram, auc[trW_test==1]),paired=T)
+t.test(with(mvpa_df, auc[tr==2 & train_test=='EX,4fold']),with(exextrs_scram, auc[trW_test==2]),paired=T)
+t.test(with(mvpa_df, auc[tr==3 & train_test=='EX,4fold']),with(exextrs_scram, auc[trW_test==3]),paired=T)
+t.test(with(mvpa_df, auc[tr==4 & train_test=='EX,4fold']),with(exextrs_scram, auc[trW_test==4]),paired=T)
+t.test(with(mvpa_df, auc[tr==5 & train_test=='EX,4fold']),with(exextrs_scram, auc[trW_test==5]),paired=T)
+t.test(with(mvpa_df, auc[tr==6 & train_test=='EX,4fold']),with(exextrs_scram, auc[trW_test==6]),paired=T)
+
+excmtrs_scram=fixTrInMvpaDf(excmtrs_scram)
+t.test(with(mvpa_df, auc[tr==1 & train_test=='EX>CM']),with(excmtrs_scram, auc[trW_test==1]),paired=T)
+t.test(with(mvpa_df, auc[tr==2 & train_test=='EX>CM']),with(excmtrs_scram, auc[trW_test==2]),paired=T)
+t.test(with(mvpa_df, auc[tr==3 & train_test=='EX>CM']),with(excmtrs_scram, auc[trW_test==3]),paired=T)
+t.test(with(mvpa_df, auc[tr==4 & train_test=='EX>CM']),with(excmtrs_scram, auc[trW_test==4]),paired=T)
+t.test(with(mvpa_df, auc[tr==5 & train_test=='EX>CM']),with(excmtrs_scram, auc[trW_test==5]),paired=T)
+t.test(with(mvpa_df, auc[tr==6 & train_test=='EX>CM']),with(excmtrs_scram, auc[trW_test==6]),paired=T)
+```
