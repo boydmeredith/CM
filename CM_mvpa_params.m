@@ -69,7 +69,7 @@ if expt.scramble ==1
 end
 
 %expt.roiName = 'rLR_Precentral_aal';
-expt.roiName = 'SEPT09_MVPA_MASK_resliced4mm';
+expt.roiName = 'SEPT09_MVPA_MASK_resliced4mm.nii';
 expt.trnSubCondsToBal = {};
 expt.tstSubCondsToBal = {};
 
