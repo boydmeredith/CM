@@ -392,7 +392,7 @@ with(excmtr3,cor.test(auc,cm_d))
 
 ```{r plot correlation between auc and cm d}
 #plot them
-ggplot(excmtr3,aes(y=auc,x=cm_d))+geom_smooth(method="lm")+geom_point(size=3,fill='white',shape=21)+plotformat+labs(y="EX>CM Classifier Performance (AUC)",x="Memory performance in CM task (d')")+coord_fixed(ratio=2.37/.5,xlim=c(-.27,2.1),ylim=c(.3,.8))
+ggplot(excmtr3,aes(y=auc,x=cm_d))+geom_smooth(method="lm")+geom_point(size=3,fill='white',shape=21)+plotformat+labs(y="EX>CM Classifier Performance (AUC)",x="Memory performance in CM task (d')")+coord_fixed(ratio=2.37/.4,xlim=c(-.27,2.1),ylim=c(.25,.75))
 
 ```
 
@@ -502,7 +502,7 @@ plotMvpaTrRibbons(subset(trsweep_dfS,trW_train==3 & scramble == 0))+facet_wrap(~
 
 ```{r tr sweep histograms, fig.width=15, fig.height =10}
 
-qplot(data=subset(trsweep_df,trW_train==3  & condNames=='hit;cr'),x=auc,group=interaction(roiName,trW_test,scramble),fill=as.factor(scramble),geom='bar',position='dodge',alpha=.5)+facet_wrap(~roiName+trW_test,ncol=6,scales='free')+plotformat
+#qplot(data=subset(trsweep_df,trW_train==3  & condNames=='hit;cr'),x=auc,group=interaction(roiName,trW_test,scramble),fill=as.factor(scramble),geom='bar',position='dodge',alpha=.5)+facet_wrap(~roiName+trW_test,ncol=6,scales='free')+plotformat
 ```
 
 **Perhaps we should be increasing our power by using each iteration as an observation, rather than averaging and then comparing 24 observations**
@@ -571,7 +571,7 @@ plotMvpaTrRibbons(subset(trbytr_dfS, scramble == 0))+facet_wrap(~roiLabel)+
 
 ```{r trbytr histograms, fig.width=15, fig.height =10}
 
-qplot(data=subset(trbytr_df,  condNames=='hit;cr'),x=auc,group=interaction(roiName,trW_test,scramble),fill=as.factor(scramble),geom='bar',position='dodge',alpha=.5)+facet_wrap(~roiName+trW_test,ncol=6,scales='free')+plotformat
+#qplot(data=subset(trbytr_df,  condNames=='hit;cr'),x=auc,group=interaction(roiName,trW_test,scramble),fill=as.factor(scramble),geom='bar',position='dodge',alpha=.5)+facet_wrap(~roiName+trW_test,ncol=6,scales='free')+plotformat
 ```
 
 **Perhaps we should be increasing our power by using each iteration as an observation, rather than averaging and then comparing 24 observations**
