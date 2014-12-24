@@ -362,7 +362,10 @@ grid$acc<-stats::predict(model,newdata=grid)
 
 confacc_plt<-ggplot(mvpa_accbyconf_df,aes(x=bin_num,y=acc,group=name,color=name))+plotformat+labs(x='Percentile confidence bin',y=expression("p(Classifier correct)"),title="Classifier accuracy\nby confidence")+theme(axis.text.x  = element_text(angle=70, vjust=0.5))
 
-confacc_plt+geom_pointrange(data=confacc_ag,aes(x=bin_num,y=mean_acc,ymin=min_acc,ymax=max_acc),size=.85)+  geom_line(data=grid,size=.75) + scale_x_continuous(labels=mvpa_accbyconf_df$bin_name[seq(1,20,2)],breaks=seq(1,20,2))+scale_color_discrete(breaks=c("extocm_late","extocm_tr3","extoex_late"),labels=c("EX>CM, late TRs", "EX>CM, 3rd TR","EX (cross-validated), late TRs"),name='Classifier')
+confacc_plt+geom_pointrange(data=confacc_ag,aes(x=bin_num,y=mean_acc,ymin=min_acc,ymax=max_acc,shape=name),size=1)+  geom_line(data=grid,size=.75) + scale_x_continuous(labels=mvpa_accbyconf_df$bin_name[seq(1,20,2)],breaks=seq(1,20,2))+scale_color_manual(breaks=c("extocm_late","extocm_tr3","extoex_late"),labels=c("EX>CM, late TRs", "EX>CM, 3rd TR","EX (cross-validated), late TRs"),name='Classifier',values=cbPalette[c(2,2,1)])+scale_shape_manual(breaks=c("extocm_late","extocm_tr3","extoex_late"),labels=c("EX>CM, late TRs", "EX>CM, 3rd TR","EX (cross-validated), late TRs"),name='Classifier',values=c(16,17,16))
+
+confacc_ag
+
 ```
 
 
