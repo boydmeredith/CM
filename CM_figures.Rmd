@@ -415,50 +415,10 @@ trsweeptrsweep_df = read.csv(trsweeptrsweep_file,header=T)
 trsweep_df=trsweeptrsweep_df
 ```
 
-Then, get the mean, and sem of auc in this data grouped by trained and testing trs, and whether or not the data is scrambled.
-
-```{r summarize_tr_swweep_df}
-trsweep_dfS<-ddply(trsweep_df,c("tr_train","tr_test","tr_te","scrambled"),summarise,N=length(auc),mean_auc=mean(auc),sd_auc = sd(auc), sem_auc=sd_auc/sqrt(N))
-```
-
-Now, we'll check for significance. Whether our results are significant should depend on our choice of `m` (where we want $p \le \alpha/m)
-
-```{r tr_sweep_significance}
-#train tr 3, test tr 3 above chance
-with(subset(trsweep_df, tr_train==3 & tr_test==3),t.test(auc[scrambled==FALSE],auc[scrambled==TRUE]))
-#train tr 4, test tr 3 above chance
-with(subset(trsweep_df, tr_train==4 & tr_test==3),t.test(auc[scrambled==FALSE],auc[scrambled==TRUE]))
-#train tr 3, test tr 5 below chance
-with(subset(trsweep_df, tr_train==3 & tr_test==5),t.test(auc[scrambled==FALSE],auc[scrambled==TRUE]))
-#train tr 4, test tr 5 shows no diff from chance
-with(subset(trsweep_df, tr_train==4 & tr_test==5),t.test(auc[scrambled==FALSE],auc[scrambled==TRUE]))
-```
-
-Let's visualize the result, using our friend ggplot.
-
-```{r plot tr_sweep_fig}
-tr_sweep_fig <- ggplot(trsweep_dfS, aes(x=as.numeric(tr_test), y=mean_auc,color=interaction(scrambled,factor(tr_train)),fill=factor(tr_train),alpha=.5))+  geom_ribbon(aes(ymin=mean_auc-sem_auc, ymax=mean_auc+sem_auc))+geom_line(linetype='dashed')+plotformat+fiftyline+ylim(.4,.7)+theme_bw()
-tr_sweep_fig
-```
-
-
-
 Let's depict this as a visualization.
 
-#Figure 8: ROIS
+#ROIS
 ##EX>CM
-```{r look at EX>CM in rois}
-roi_dat_file = sprintf('%s/aucSummary__EXCM_masked.csv',dir)
-roi_df = read.csv(roi_dat_file,header=T)
-```
-
-```{r make some plots}
-roi_dfS<-ddply(roi_df,c("mask","tr"),summarise,N=length(auc),mean_auc=mean(auc),sd_auc = sd(auc), sem_auc=sd_auc/sqrt(N), min_auc = mean_auc-sem_auc, max_auc = mean_auc+sem_auc)
-
-ggplot(roi_dfS,aes(x=tr,y=mean_auc))+geom_pointrange(position = position_dodge(.3), aes(color=mask, group=mask,ymin=min_auc,ymax=max_auc),size=1.15)+fiftyline+labs(title='EX>CM roi aucs')+plotformat
-
-```
-
 ##ROI TR sweep: Train on tr 3, test on all trs
 
 ```{r load ex cm df}
