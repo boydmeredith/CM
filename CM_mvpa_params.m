@@ -16,7 +16,7 @@ expt.xval_iters_for_imp_map = [];
 %flags determine how classifier wrapper behaves
 expt.num_full_iter = 1; % number of times to run the entire classification process, including feature selection
 expt.num_iter_with_same_data = 1; % number of times to run the classfication step for a given subset of data
-expt.num_results_iter = 10; % number of times to run the post-feature selection classification process (select subset of the data and train/test classifier)
+expt.num_results_iter = 1; % number of times to run the post-feature selection classification process (select subset of the data and train/test classifier)
 expt.equate_number_of_trials_in_cond_1_and_2 = 1; % equate number of trials in conditions 1 and 2 (RECOMMENDED)
 expt.anova_p_thresh = 1;  % p-value threshold for feature selection ANOVA (1 = DON'T PERFORM ANY FEATURE SELECTION)
 expt.anova_nVox_thresh = 0; % alternative to specifying p-value threshold; uses top N voxels (0 = DON'T PERFORM ANY FEATURE SELECTION)
@@ -70,6 +70,7 @@ end
 
 %expt.roiName = 'rLR_Precentral_aal';
 expt.roiName = 'SEPT09_MVPA_MASK_resliced4mm.nii';
+%expt.roiName = 'rleftSplMask_tbm112514.nii';
 expt.trnSubCondsToBal = {};
 expt.tstSubCondsToBal = {};
 
@@ -86,7 +87,7 @@ expt.which_traintest = [1 2 3 4 0 0 0 0];
 expt.condNames = {'hit', 'cr'};
 expt.subjFname = fullfile(expt.dir, subj_id, expt.mvpaDirStr,[subj_id '_' expt.roiName '.mat']); %having this previously saved avoids time-consuming data extraction and preproc
 
-expt.srch_radius = 5;
+expt.srch_radius = sqrt(2);
 
 
 %% establish general parameters
@@ -234,8 +235,8 @@ S.vol_info = spm_vol(fullfile(par.subdir, 'TestExp/TestExp01/', ['swa', par.str,
 
 %S.roi_name = ['parietalNoPostCentral.img'];
 %S.roi_file = '/biac4/wagner/biac3/wagner5/alan/perceptMnemonic/fmri_data/masks/parietalNoPostCentral.img';
-S.roi_file = [S.expt_dir '/Masks/inv_SEPT09_MVPA_MASK_resliced4mm.nii'];
-S.roi_name = 'inv_SEPT09_MVPA_MASK_resliced4mm.nii';
+S.roi_file = [S.expt_dir '/Masks/rleftAngMask_tbm112514.nii'];
+S.roi_name = 'rleftAngMask_tbm112514.nii';
 
 %S.roi_name = 'rc1V001.nii';
 %S.roi_file = fullfile(S.anat_dir, S.roi_name);
