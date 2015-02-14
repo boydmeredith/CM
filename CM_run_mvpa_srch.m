@@ -127,7 +127,7 @@ for iSub = subjArray
         
         % visualize 1st resulting searchlight pattern
         figure;
-        Subj = load_spm_mask(Subj,'wholebrain','/Users/Jesse/fMRI/COUNTERMEASURES/Data/Functional/Masks/SEPT09_MVPA_MASK_resliced4mm.nii')
+        Subj = load_spm_mask(Subj,'wholebrain',fullfile(Expt.dir, '/Masks/SEPT09_MVPA_MASK_resliced4mm.nii'));
         view_pattern_overlay(Subj,'wholebrain','epi_d_hp_z_condensed_srch_1',...
             'over_cmap','redblue','autoslice',true)
         
@@ -136,7 +136,7 @@ for iSub = subjArray
         assert(length(Subj.patterns) == 6) % I'm being lazy in how the header gets defined, so let's make sure to assert that I change it in the future
         Subj.patterns{6}.header.vol = Subj.patterns{5}.header.vol{1}
         Subj.patterns{6}.header.vol.fname = ...
-            sprintf('/Users/Jesse/fMRI/COUNTERMEASURES/Data/Functional/CM%03d/test_searchlight_output_%s.nii',iSub,Expt.roiName);
+            sprintf(fullfile(Expt.dir, '/CM%03d/test_searchlight_output_%s.nii'),iSub,Expt.roiName);
         write_to_spm(Subj,'pattern','epi_d_hp_z_condensed_srch_1');
         
         
@@ -188,13 +188,15 @@ end
 function name = cm_make_sl_savename(Expt)
 condNamesStr = strrep(strjoin(Expt.condNames),',','V');
 trTeStr = strrep(num2str(Expt.which_traintest),'  ','_');
-trWStr = strrep(num2str(Expt.trWeights),' ','_');
+trWStr_tr = strrep(num2str(Expt.trWeights_train),' ','_');
 roiStr = regexprep(Expt.roiName,'(\w*).*','$1');
-name = sprintf('srchlight_onds_%s_trTe%s_trW%s_roi%s',condNamesStr,trTeStr,trWStr,roiStr);
+name = sprintf('srchlight_conds_%s_trTe%s_trW%s_roi%s',condNamesStr,trTeStr,trWStr_tr,roiStr);
 
 end
 
-function Subj = cm_condense_onsets_and_patterns(Subj, Expt);   
+function Subj = cm_condense_onsets_and_patterns(Subj, Expt)
+% Condenses the loaded onsets and patterns to remove timepoints of
+% non-interest
 condensed_runs = [];
 nExamples = [];
 
@@ -207,51 +209,64 @@ nPatts = size(Subj.patterns{end}.mat,2)
 nCondsTotal = size(onsets,2);
 assert(nScanFiles == nPatts);
 
+% find the
 Expt.condCols = makeCondCols(Expt, names);
 nCondsToClassify = length(Expt.condNames);
 condOnsets = zeros(nCondsToClassify, nPatts);
 i = 1;
 for iCond = Expt.condCols;
-	nExamples(i) = length(onsets{iCond});
-	time_idx = onsets{iCond}/Expt.trSecs + 1;
-	condOnsets(i, time_idx) = 1;
-	i = i + 1;	
+    % record number of examples available for each condition
+    nExamples(i) = length(onsets{iCond});
+    % turn the onsets into a value that corresponds with volume acquisition
+    % number, rather than time passed
+    time_idx = onsets{iCond}/Expt.trSecs + 1;
+    % put 1's in the condOnsets to create regressors
+    condOnsets(i, time_idx) = 1;
+    i = i + 1;
 end
+% visualize the trials associated with each condition
+subplot(1,2,1);
+imagesc(condOnsets');
 
+% identify rest timepoints (defined here as timepoints where neither
+% condition of interest is relevant
 restTp = (sum(condOnsets,1) == 0);
+% create condensed regressors, which exlude timepoints of noninterest
 condensedCondRegs = condOnsets(:,~restTp);
+subplot(1,2,2);
+imagesc(condensedCondRegs');
 
 all_trials = sum(condOnsets,1);
 for trNum = Expt.trsToAverageOver
-	data_by_tr(trNum,:,:) = Expt.trWeights(trNum)*Subj.patterns{end}.mat(:,find(all_trials)+trNum-1);
+    data_by_tr(trNum,:,:) = Expt.trWeights(trNum)*Subj.patterns{end}.mat(:,find(all_trials)+trNum-1);
 end
 temporally_condensed_data = squeeze(sum(data_by_tr(Expt.trsToAverageOver,:,:),1));
 clear data_by_tr;
 
 if Expt.remove_outlier_trials
-	mean_across_voxels = mean(temporally_condensed_data,1);
-	z_mean_across_voxels = zscore(mean_across_voxels);
-	upper_outliers = find(z_mean_across_voxels> Expt.remove_outlier_trials);
-	lower_outliers = find(z_mean_across_voxels< -1 * Expt.remove_outlier_trials);
-	all_outliers = union(upper_outliers,lower_outliers)
-	condensedCondRegs(:,all_outliers) = 0;
+    mean_across_voxels = mean(temporally_condensed_data,1);
+    z_mean_across_voxels = zscore(mean_across_voxels);
+    upper_outliers = find(z_mean_across_voxels> Expt.remove_outlier_trials);
+    lower_outliers = find(z_mean_across_voxels< -1 * Expt.remove_outlier_trials);
+    all_outliers = union(upper_outliers,lower_outliers)
+    condensedCondRegs(:,all_outliers) = 0;
+    fprintf('removing outliers >%i standard deviations from the mean (trials %s)',Expt.remove_outlier_trials,all_outliers)
 end
 
+% create condensed runs be removing rest timepoints
 condensed_runs = Subj.selectors{1}.mat(~restTp);
 
+% add condensed images to Subj
 Subj = initset_object(Subj, 'regressors', 'conds', condensedCondRegs, 'condnames', Expt.condNames);
 Subj = duplicate_object(Subj, 'pattern', 'epi_d_hp_z','epi_d_hp_z_condensed');
 Subj = set_mat(Subj, 'pattern', 'epi_d_hp_z_condensed', temporally_condensed_data,'ignore_diff_size',true);
-Subj = add_history(Subj,'pattern','epi_d_hp_z_condensed','Pattern created created by JR custom code')
+Subj = add_history(Subj,'pattern','epi_d_hp_z_condensed','Pattern created created by JR custom code');
 Subj = remove_mat(Subj,'pattern','epi_d_hp_z');
+summarize(Subj);
 
+% add condensed runs variable to Subj
 Subj.selectors{1}.mat = condensed_runs;
 Subj.selectors{1}.matsize = size(condensed_runs);
-
-active_trials = find(sum(condensedCondRegs));
-actives_selector = zeros(1,size(condensedCondRegs,2));
-actives_selector(active_trials) =1;
-Subj = initset_object(Subj,'selector','conditions_of_interest',actives_selector);
 
 end
 
@@ -264,27 +279,34 @@ nRuns = max(runs);
 nTimepoints = length(runs);
 
 runs_xval_sl = ones(nRuns, nTimepoints);
-% set up train explicit test countermeasures selector by setting all explicit trials to be training examples (1s), 3 of 4 CM trials are set as searchlight training runs (3s), and the remaining CM trial is set as a final generalization test trial (2)
-trEx_teCm_sl = ones(4, nTimepoints);
+% % set up train explicit test countermeasures selector by setting all explicit trials to be training examples (1s), 3 of 4 CM trials are set as searchlight training runs (3s), and the remaining CM trial is set as a final generalization test trial (2)
+% trEx_teCm_sl = ones(4, nTimepoints);
+% cm_run_ix = find(ismember(runs,CM_RUNS));
+% trEx_teCm_sl(:, cm_run_ix) = 3;
+% for r = FIRST_CM_RUN:nRuns
+%     r_ix = r-FIRST_CM_RUN+1;
+%     cur_final_test_run = find(runs == nRuns-r_ix+1);
+%     trEx_teCm_sl(r_ix, cur_final_test_run) = 2;
+%     cur_name = sprintf('trEx_teCm_sl_%i',r_ix);
+%     Subj = initset_object(Subj, 'selector', cur_name, ...
+%         trEx_teCm_sl(r_ix,:),'group_name','trEx_teCm_sl');
+% end
+% 
+% imagesc(trEx_teCm_sl);
+% set(gca, 'CLim', [1 3]);
+% colorbar;
+
+trEx_teCm_sl = ones(1,nTimepoints);
 cm_run_ix = find(ismember(runs,CM_RUNS));
 trEx_teCm_sl(:, cm_run_ix) = 3;
-for r = FIRST_CM_RUN:nRuns
-    r_ix = r-FIRST_CM_RUN+1;
-    cur_final_test_run = find(runs == nRuns-r_ix+1);
-	trEx_teCm_sl(r_ix, cur_final_test_run) = 2;
-	cur_name = sprintf('trEx_teCm_sl_%i',r_ix);
-	Subj = initset_object(Subj, 'selector', cur_name, ...
-		trEx_teCm_sl(r_ix,:),'group_name','trEx_teCm_sl');
-end
+trEx_teCm_sl(:,Subj.selectors{end}.mat==0) = 0;
+Subj = initset_object(Subj, 'selector', 'trEx_teCm_sl_1', ...
+         trEx_teCm_sl,'group_name','trEx_teCm_sl');
 
-imagesc(trEx_teCm_sl);
-set(gca, 'CLim', [1 3]);
-colorbar;
-
-% set up xval selector 
+% set up xval selector
 for r = 1:nRuns
-	cur_final_test_run = find(runs==r);
-	runs_xval_sl(r, cur_final_test_run) = 2;
+    cur_final_test_run = find(runs==r);
+    runs_xval_sl(r, cur_final_test_run) = 2;
 end
 
 %imagesc(runs_xval_sl);
@@ -292,12 +314,13 @@ end
 %colorbar
 
 for r = 1:nRuns
-	cur_searchlight_gen_run = find(runs == nRuns-r+1);
-	runs_xval_sl(r, cur_searchlight_gen_run) = 3;
-	cur_name = sprintf('runs_xval_sl_%i',r);
-	Subj = initset_object(Subj, 'selector', cur_name, ...
-		runs_xval_sl(r,:), ...
-		'group_name', 'runs_xval_sl' );
+    cur_searchlight_gen_run = find(runs == nRuns-r+1);
+    runs_xval_sl(r, cur_searchlight_gen_run) = 3;
+    runs_xval_sl(r,Subj.selectors{end}.mat==0) = 0;
+    cur_name = sprintf('runs_xval_sl_%i',r);
+    Subj = initset_object(Subj, 'selector', cur_name, ...
+        runs_xval_sl(r,:), ...
+        'group_name', 'runs_xval_sl' );
 end
 
 %imagesc(runs_xval_sl)
