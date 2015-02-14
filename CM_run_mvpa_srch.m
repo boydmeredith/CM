@@ -14,6 +14,20 @@ end
 % name will be passed to feature_select
 SL_SELECTOR_TO_USE = 'trEx_teCm_sl';
 
+
+% initialize some classifier and searchlight specific parameter variables
+class_args.train_funct_name = 'train_pLR';
+class_args.test_funct_name = 'test_pLR';
+class_args.penalty=1;
+
+scratch.class_args = class_args;
+scratch.perfmet_funct = 'perfmet_maxclass';
+scratch.perfmet_args = struct([]);
+
+statmap_srch_arg.obj_funct = 'statmap_classify';
+statmap_srch_arg.scratch = scratch;
+
+% iterate through each subject performing classification
 for iSub = subjArray
 	[Expt, classArgs, ~, par] = CM_mvpa_params(iSub, 'ret');
 	Expt.sl_selector_to_use = SL_SELECTOR_TO_USE;
