@@ -1,5 +1,14 @@
-function [Subj res] = CM_run_mvpa_srch(subjArray, varargin)
+function [Subj res] = CM_run_mvpa_srch(subjArray)
+% Runs a searchlight classification analysis on the countermeasures dataset
+% Args:
+%   subjArray: array of subject numbers to include in the analysis
+%
+% Returns:
+%   Map of highest classification performance
 
+if nargin < 1
+    subjArray=[1,3:10,12:26];
+end
 
 % this selector will be set up by cm_create_sl_selectors and its
 % name will be passed to feature_select
