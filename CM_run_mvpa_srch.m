@@ -21,7 +21,7 @@ class_args.test_funct_name = 'test_pLR';
 class_args.penalty=1;
 
 scratch.class_args = class_args;
-scratch.perfmet_funct = 'perfmet_maxclass';
+scratch.perfmet_funct = 'perfmet_auc';
 scratch.perfmet_args = struct([]);
 
 statmap_srch_arg.obj_funct = 'statmap_classify';
