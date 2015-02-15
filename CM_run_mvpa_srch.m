@@ -6,14 +6,16 @@ function [Subj res] = CM_run_mvpa_srch(subjArray)
 % Returns:
 %   Map of highest classification performance
 
-if nargin < 1
-    subjArray=[1,3:10,12:26];
-end
-
+% ID numbers for all subjects in this study
+ALL_SUBS = [1,3:10,12:26];
 % this selector will be set up by cm_create_sl_selectors and its
 % name will be passed to feature_select
 SL_SELECTOR_TO_USE = 'trEx_teCm_sl';
 
+% if specific subjects are not specified to classify
+if nargin < 1
+    subjArray=ALL_SUBS;
+end
 
 % initialize some classifier and searchlight specific parameter variables
 class_args.train_funct_name = 'train_pLR';
