@@ -1,4 +1,4 @@
-function par = CM_Params(subNo, task, loadScans)
+function par = CM_Params(subNo, task, loadScans, proclus)
 % sets up parameters for batching of CM experiment.
 % <subNo>: a vlue in the range of 1,3:10,12:26, or the subId (e.g. 'CM001')
 % <load scans>:
@@ -20,6 +20,9 @@ if (nargin > 3)
     par.loadScans = loadScans;
 else
     par.loadScans = 1; % by deault, load scans
+end
+if nargin < 4
+    par.proclus = 0;
 end
 
 par.str = sprintf('CM%03d',par.subNo);
@@ -77,7 +80,10 @@ par.scansSelect.(par.task) = 1:length(par.(par.task).trialsPerRun);
 % fill in at a later date
 
 %% directory information
-par.exptdir = '/Users/Jesse/fMRI/COUNTERMEASURES/';
+if proclus
+	par.exptdir = '/hsgs/projects/awagner/jtboyd/CM_ret/';
+else
+	par.exptdir = '/Users/Jesse/fMRI/COUNTERMEASURES';
 par.scriptsdir = fullfile(par.exptdir,'Scripts');
 par.datadir = fullfile(par.exptdir,'Data');
 par.funcdir = fullfile(par.datadir,'Functional');

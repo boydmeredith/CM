@@ -1,4 +1,4 @@
-function [expt, classArgs, S, par]= CM_mvpa_params(subj_id, task, varargin)
+function [expt, classArgs, par]= CM_mvpa_params(subj_id, task, proclus)
 
 % establish parameters for mvpa analysis
 % <subj_id> - identifier for the given subject. Can be numerical or a
@@ -7,10 +7,11 @@ function [expt, classArgs, S, par]= CM_mvpa_params(subj_id, task, varargin)
 
 %% EXPT SPECIFIC INFO
 expt.name = 'CM_ret';
-if ismember('proclus',varargin)
-	expt.dir = '/hsgs/projects/awagner/jtboyd/myprojects/CM_ret/Data/Functional/';
+if proclus
+	expt.dir = '/hsgs/projects/awagner/jtboyd/CM_ret/Data/Functional/';
+else
+    expt.dir = '/Users/Jesse/fMRI/COUNTERMEASURES/Data/Functional/'; % top-level expt. directory where individual subject folders live
 end
-expt.dir = '/Users/Jesse/fMRI/COUNTERMEASURES/Data/Functional/'; % top-level expt. directory where individual subject folders live
 expt.mvpaDirStr = 'mvpa';
 %expt.dataImgsToUse = 'raw_filenames.mat'; % .mat file containing names of all functional images (must exist for each subject; can be created by running cellstr(SPM.xY.P) on subject's SPM.mat file)
 expt.numTpPerRun = 256; % number of TRs per scanning run (coded for fixed value; adjust code structure if variable TR counts across runs)
@@ -91,4 +92,10 @@ expt.condNames = {'hit', 'cr'};
 expt.subjFname = fullfile(expt.dir, subj_id, expt.mvpaDirStr,[subj_id '_' expt.roiName '.mat']); %having this previously saved avoids time-consuming data extraction and preproc
 
 expt.srch_radius = sqrt(2);
+
+
+%% establish general parameters
+
+par = CM_Params(subj_id, task, 1, proclus);
+
 end

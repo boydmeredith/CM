@@ -1,4 +1,4 @@
-function [Subj res] = CM_run_mvpa_srch(subjArray)
+function [Subj res] = CM_run_mvpa_srch(subjArray, classification_name, proclus)
 % Runs a searchlight classification analysis on the countermeasures dataset
 % Args:
 %   subjArray: array of subject numbers to include in the analysis
@@ -13,10 +13,11 @@ ALL_SUBS = [1,3:10,12:26];
 SL_SELECTOR_TO_USE = 'trEx_teCm_sl';
 
 % if specific subjects are not specified to classify
-if nargin < 1
+if isempty(subjArray)
     subjArray=ALL_SUBS;
 end
 
+res = [];
 % initialize some classifier and searchlight specific parameter variables
 class_args.train_funct_name = 'train_pLR';
 class_args.test_funct_name = 'test_pLR';
@@ -32,7 +33,7 @@ statmap_srch_arg.scratch = scratch;
 % iterate through each subject performing classification
 for iSub = subjArray
     % load relevant mvpa and experiment parameters
-    [Expt, classArgs, ~, par] = CM_mvpa_params(iSub, 'ret');
+    [Expt, classArgs, par] = CM_mvpa_params(iSub, 'ret', proclus);
     % create necessary strings
     Expt.sl_selector_to_use = SL_SELECTOR_TO_USE;
     subjId = sprintf(Expt.subjIdFormat,iSub);
@@ -41,6 +42,11 @@ for iSub = subjArray
     Expt.roiFname = fullfile(Expt.dir,'Masks',Expt.roiName);
     thisMvpaDir = fullfile(Expt.dir, subjId, Expt.mvpaDirStr);
     Expt.subjFname = fullfile(thisMvpaDir, [subjId '_' Expt.roiName '_s8mm_wa.mat']);
+    
+    if ismember('scramble',varargin)
+        fprintf('this classification will be performed on scrambled regressors!');
+        Expt.scramble = 1;
+    end
     
     % training and testing on the same TR, whether you like it or not
     assert(isequal(Expt.trWeights_train, Expt.trWeights_test));
@@ -118,6 +124,11 @@ for iSub = subjArray
         statmap_srch_arg.adj_list = Subj.adj_sphere;
         
         
+        
+        Subj = JR_scramble_regressors(Subj,'conds',[SL_SELECTOR_TO_USE '_bal_1'],'conditions_of_interest_bal_within_runs','conds_scrambled');
+       
+        
+        % run searchlight classification
         Subj = feature_select(Subj, ...
             'epi_d_hp_z_condensed', ... %data
             'conds', ... % binary regs
@@ -127,63 +138,59 @@ for iSub = subjArray
             'new_map_patname', 'epi_d_hp_z_condensed_srch', ...
             'thresh', []);
         
+        % rerun with the scrambled regressors
+        Subj = feature_select(Subj, ...
+            'epi_d_hp_z_condensed', ... %data
+            'conds_scrambled', ... % binary regs
+            SL_SELECTOR_TO_USE, ... % selector
+            'statmap_funct', 'statmap_searchlight', ... %function
+            'statmap_arg',statmap_srch_arg, ...
+            'new_map_patname', 'epi_d_hp_z_condensed_srch_scrambled', ...
+            'thresh', []);
+        
+               
         % visualize 1st resulting searchlight pattern
         figure;
         Subj = load_spm_mask(Subj,'wholebrain',fullfile(Expt.dir, '/Masks/SEPT09_MVPA_MASK_resliced4mm.nii'));
-        view_pattern_overlay(Subj,'wholebrain','epi_d_hp_z_condensed_srch_1',...
+        if ~proclus
+		view_pattern_overlay(Subj,'wholebrain','epi_d_hp_z_condensed_srch_1',...
             'over_cmap','redblue','autoslice',true)
+    	end
+        % populate res structure to save
+        if iResIteration == 1
+            res = Subj.patterns{end};
+            res.masks =  Subj.masks;
+            res.auc = nan(Subj.patterns{end}.matsize(1), Expt.num_results_iter);
+            res.auc_scram_regs = nan(Subj.patterns{end}.matsize(1), Expt.num_results_iter);
+            res.parameters = Expt;
+        end
+        res.auc(:,iResIteration) = get_mat(Subj,'pattern','epi_d_hp_z_condensed_srch_1');
+        res.auc_scram_regs(:,iResIteration) = get_mat(Subj,'pattern','epi_d_hp_z_condensed_srch_scrambled_1');
         
-        % hack together header information for the new pattern, so that we
-        % can save out a Nifti corresponding to the new info
-        assert(length(Subj.patterns) == 6) % I'm being lazy in how the header gets defined, so let's make sure to assert that I change it in the future
-        Subj.patterns{6}.header.vol = Subj.patterns{5}.header.vol{1}
-        Subj.patterns{6}.header.vol.fname = ...
-            sprintf(fullfile(Expt.dir, '/CM%03d/test_searchlight_output_%s.nii'),iSub,Expt.roiName);
-        write_to_spm(Subj,'pattern','epi_d_hp_z_condensed_srch_1');
+%         % hack together header information for the new pattern, so that we
+%         % can save out a Nifti corresponding to the new info
+%         assert(length(Subj.patterns) == 6) % I'm being lazy in how the header gets defined, so let's make sure to assert that I change it in the future
+%         Subj.patterns{6}.header.vol = Subj.patterns{5}.header.vol{1}
+%         Subj.patterns{6}.header.vol.fname = ...
+%             sprintf(fullfile(Expt.dir, '/CM%03d/test_searchlight_output_%s.nii'),iSub,Expt.roiName);
+%         write_to_spm(Subj,'pattern','epi_d_hp_z_condensed_srch_1');
         
-        
-        
-        
-        
-%         Subj=create_sorted_mask( ...
-%             Subj,'epi_d_hp_z_condensed_srch', ...
-%             'epi_d_hp_z_condensed_srch_top200', ...
-%             20,'descending',true)
-%         
-%         Subj=create_sorted_mask( ...
-%             Subj,'epi_d_hp_z_condensed_srch', ...
-%             'epi_d_hp_z_condensed_srch_bottom200', ...
-%             200,'descending',false)
-%         
-%         class_args.train_funct_name = 'train_pLR';
-%         class_args.test_funct_name = 'test_pLR';
-%         class_args.penalty = 10;
-%         
-%         [Subj res.top200SlMask{iSub}] = cross_validation( ...
-%             Subj, ...
-%             'epi_d_hp_z_condensed', ... % data
-%             'conds', ... % regressors
-%             SL_SELECTOR_TO_USE, ... % xval selectors
-%             'epi_d_hp_z_condensed_srch_top200', ... % mask group
-%             class_args,'perfmet_functs', Expt.perfmetFuncts);
-%         
-%         [Subj res.bottom200SlMask{iSub}] = cross_validation( ...
-%             Subj, ...
-%             'epi_d_hp_z_condensed', ... % data
-%             'conds', ... % regressors
-%             SL_SELECTOR_TO_USE, ... % xval selectors
-%             'epi_d_hp_z_condensed_srch_bottom200', ... % mask group
-%             class_args,'perfmet_functs', Expt.perfmetFuncts);
-%         
         
     end
     
+    saveDir = fullfile(Expt.dir, 'sl_mvpa', classification_name);
+    if ~exist(saveDir,'dir')
+        mkdir(saveDir);
+    end
+    save(fullfile(saveDir, sprintf('CM%03d.mat',iSub)),'res');
+    close all;
 end
 
 % if ~exist(Expt.groupMvpaDir)
 %     mkdir(Expt.groupMvpaDir);
 % end
 % save(fullfile(Expt.group_mvpa_dir, Expt.saveName),'res', 'Subj');
+
 
 end
 
