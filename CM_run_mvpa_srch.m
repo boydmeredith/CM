@@ -43,10 +43,6 @@ for iSub = subjArray
     thisMvpaDir = fullfile(Expt.dir, subjId, Expt.mvpaDirStr);
     Expt.subjFname = fullfile(thisMvpaDir, [subjId '_' Expt.roiName '_s8mm_wa.mat']);
     
-    if ismember('scramble',varargin)
-        fprintf('this classification will be performed on scrambled regressors!');
-        Expt.scramble = 1;
-    end
     
     % training and testing on the same TR, whether you like it or not
     assert(isequal(Expt.trWeights_train, Expt.trWeights_test));
