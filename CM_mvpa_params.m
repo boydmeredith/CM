@@ -20,7 +20,7 @@ expt.xval_iters_for_imp_map = [];
 %flags determine how classifier wrapper behaves
 expt.num_full_iter = 1; % number of times to run the entire classification process, including feature selection
 expt.num_iter_with_same_data = 1; % number of times to run the classfication step for a given subset of data
-expt.num_results_iter = 1; % number of times to run the post-feature selection classification process (select subset of the data and train/test classifier)
+expt.num_results_iter = 10; % number of times to run the post-feature selection classification process (select subset of the data and train/test classifier)
 expt.equate_number_of_trials_in_cond_1_and_2 = 1; % equate number of trials in conditions 1 and 2 (RECOMMENDED)
 expt.anova_p_thresh = 1;  % p-value threshold for feature selection ANOVA (1 = DON'T PERFORM ANY FEATURE SELECTION)
 expt.anova_nVox_thresh = 0; % alternative to specifying p-value threshold; uses top N voxels (0 = DON'T PERFORM ANY FEATURE SELECTION)
