@@ -1,7 +1,10 @@
-function [Subj res] = CM_run_mvpa_srch(subjArray, classification_name, proclus)
+function [subj res] = CM_run_mvpa_srch(subjArray, classification_name, proclus, varargin)
+% function [subj res] = CM_run_mvpa_srch(subjArray, classification_name, proclus)
 % Runs a searchlight classification analysis on the countermeasures dataset
 % Args:
 %   subjArray: array of subject numbers to include in the analysis
+%   classification_name: will put results in file of this name
+%   proclus: allows setting up paths approriately for local machine vs proclus
 %
 % Returns:
 %   Map of highest classification performance
