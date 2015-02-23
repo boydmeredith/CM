@@ -84,6 +84,7 @@ if proclus
 	par.exptdir = '/hsgs/projects/awagner/jtboyd/CM_ret/';
 else
 	par.exptdir = '/Users/Jesse/fMRI/COUNTERMEASURES';
+end
 par.scriptsdir = fullfile(par.exptdir,'Scripts');
 par.datadir = fullfile(par.exptdir,'Data');
 par.funcdir = fullfile(par.datadir,'Functional');
