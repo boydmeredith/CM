@@ -14,6 +14,7 @@ require(plyr) #plyr is used to summarize data along dimensions we care about
 require(ggplot2) #ggplot! our favorite plotting tool
 require(gridExtra) #gridExtra let's us arrangement figures into grids
 require(reshape)
+require(lme4)
 ```
 
 #Setup plotting variables
@@ -30,7 +31,7 @@ fiftyline=stat_abline(intercept=.5,slope=0,linetype="dashed",color='black',size=
 plotformat=theme(title= element_text(size=17),axis.title = element_text(size=17),axis.text.x=element_text(size=15),axis.text.y=element_text(size=15), legend.text=element_text(size=20),strip.text.x = element_text(size = 17))+theme_classic()
 ```
 
-We'll have to be a little bit clever about getting our color palette into the plots, but the 50% chanceline and plotformats we can just do by adding them to our ggplots, i.e. `myplot + fiftyline`. so simple!
+We'll have to be a little bit clever about getting our color palette into the plots, but the 50% fiftyline and plotformats we can just do by adding them to our ggplots, i.e. `myplot + fiftyline`. so simple!
 
 If I wasn't using this document as an R markdown tutorial, I would probably not show this code chunk in the html output. I could have hidden it by adding `echo=FALSE` to the code chunk header (note: code chunk headers are the thing in the Rmd that looks like :
 ```{r <chunk_title>, echo=TRUE, fig.width = 5}```
@@ -636,3 +637,115 @@ t.test(with(mvpa_df, auc[tr==4 & train_test=='EX>CM']),with(excmtrs_scram, auc[t
 t.test(with(mvpa_df, auc[tr==5 & train_test=='EX>CM']),with(excmtrs_scram, auc[trW_test==5]),paired=T)
 t.test(with(mvpa_df, auc[tr==6 & train_test=='EX>CM']),with(excmtrs_scram, auc[trW_test==6]),paired=T)
 ```
+
+# Follow up for reviews
+##TRAIN EARLIEST EX RUN, TEST OTHER EX RUNS: Does training on the first run get you worse results on the final run then the middle two of explicit trials
+load the relevant data set
+
+```{r}
+test_data = paste(dir, 'anderson_followup_run1torest_wb_late.csv',sep='/')
+d = read.csv(test_data,header=T)
+```
+
+Let's summarize the data looking at accuracy by run and subject.
+
+```{r}
+#fixed-effects
+dS<-ddply(d,.(runsVec,subs),summarise,acc=mean(correctsVec))
+```
+
+Here's a plot of the mean accuracy (white bars), and subject specific accuracies (colored points) by run.
+
+```{r}
+ggplot(data=dS, aes( x=runsVec, y=acc))+geom_bar(stat='summary',fun.y='mean',fill='white')+geom_point(aes(color=as.factor(subs)))+geom_line(aes(group=subs, color=as.factor(subs)))+fiftyline
+```
+
+If we want, we can look at the bars in a separate plot for each subject, so that we can get a sense of the variability in the data. It's helpful, but leaves a lot to be desired.
+
+```{r}
+ggplot(data=dS, aes( x=runsVec, y=acc))+geom_bar(stat='summary',fun.y='mean',fill='white')+geom_point(aes(color=as.factor(subs)))+fiftyline+facet_wrap(~subs)
+```
+
+Now, let's look at a fixed-effects linear model of accuracy by run. 
+
+```{r}
+#with(subset(dS, runsVec %in% c(2, 4)), t.test(acc~runsVec))
+lmfit<-lm(acc~runsVec,dS)
+anova(lmfit)
+```
+
+This model shows no significant effect of run on accuracy.
+
+Now, let's look at a mixed-effects logistic regression. This will allow for a trial-specific prediction of whether MVPA classifier's guess will be correct or not based on what run it comes from.
+
+
+```{r}
+# mixed-effects logistic regression
+ runs = glmer(correctsVec~as.factor(runsVec)+1+(as.factor(runsVec)+1|subs),data=d,family='binomial')
+ no_runs = glmer(correctsVec~1+(1|subs),data=d,family='binomial')
+ anova(runs,no_runs)
+#h<-qplot(data=d, x=runsVec, y=correctsVec, color=as.factor(subs), position='jitter')
+#h+geom_smooth(method='loess',aes(group=subs))
+
+```
+
+This model apparently explains more of the variance than a model with just an intercept, but the coefficients aren't huge...
+
+```{r}
+runs
+```
+i'm not really sure how to interpret this last piece... need more smarts
+
+
+
+
+
+##TRAIN LATEST EX RUN, TEST REST OF THE EX RUNS: Does training on the fourth run get you worse results on the first run then the middle two of explicit trials
+load the relevant data set
+```{r}
+test_data = paste(dir, 'anderson_followup_run4torest_wb_late.csv',sep='/')
+d = read.csv(test_data,header=T)
+```
+
+Let's summarize the data looking at accuracy by run and subject.
+
+```{r}
+#fixed-effects
+dS<-ddply(d,.(runsVec,subs),summarise,acc=mean(correctsVec))
+```
+
+Here's a plot of the mean accuracy (white bars), and subject specific accuracies (colored points) by run.
+
+```{r}
+ggplot(data=dS, aes( x=runsVec, y=acc))+geom_bar(stat='summary',fun.y='mean',fill='white')+geom_point(aes(color=as.factor(subs)))+geom_line(aes(group=subs, color=as.factor(subs)))+fiftyline
+```
+
+If we want, we can look at the bars in a separate plot for each subject, so that we can get a sense of the variability in the data. It's helpful, but leaves a lot to be desired.
+
+```{r}
+ggplot(data=dS, aes( x=runsVec, y=acc))+geom_bar(stat='summary',fun.y='mean',fill='white')+geom_point(aes(color=as.factor(subs)))+fiftyline+facet_wrap(~subs)
+```
+
+Now, let's look at a fixed-effects linear model of accuracy by run. 
+
+```{r}
+#with(subset(dS, runsVec %in% c(2, 4)), t.test(acc~runsVec))
+lmfit<-lm(acc~runsVec,dS)
+anova(lmfit)
+```
+
+This model shows no significant effect of run on accuracy.
+
+Now, let's look at a mixed-effects logistic regression. This will allow for a trial-specific prediction of whether MVPA classifier's guess will be correct or not based on what run it comes from.
+
+
+```{r}
+# mixed-effects logistic regression
+ runs = glmer(correctsVec~runsVec+1+(runsVec+1|subs),data=d,family='binomial')
+ no_runs = glmer(correctsVec~1+(1|subs),data=d,family='binomial')
+ anova(runs,no_runs)
+#h<-qplot(data=d, x=runsVec, y=correctsVec, color=as.factor(subs), position='jitter')
+#h+geom_smooth(method='loess',aes(group=subs))
+
+```
+

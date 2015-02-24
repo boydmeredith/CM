@@ -1,4 +1,4 @@
-function [group] = sl_mvpa_postProc(analysis_name)
+function [group] = sl_mvpa_postProc(analysis_name, save)
 S_ARR = [1, 3:10, 12:24];
 SL_DIR = '/Users/Jesse/fMRI/COUNTERMEASURES/Data/Functional/sl_mvpa';
 analysis_dir = fullfile(SL_DIR, analysis_name);
@@ -13,7 +13,8 @@ for iSub = S_ARR
         
         % if the group variables have not been created, create them
         if ~exist('group','var')
-            group.scram   = nan(length(S_ARR), length(this_res.res.mat));
+		group.eg_res = this_res.res; %keep an example results structure around in case it's useful
+	    group.scram   = nan(length(S_ARR), length(this_res.res.mat));
             group.unscram = nan(length(S_ARR), length(this_res.res.mat));
         end
     else
@@ -25,9 +26,12 @@ for iSub = S_ARR
     group.scram(iSub, :) = nanmean(this_res.res.auc_scram_regs,2);
 end
 
-[group.h, group.p, group.ci, group.tstats] = ttest(group.scram, group.unscram);
+[group.h, group.p, group.ci, group.stats] = ttest(group.unscram, group.scram);
 group.mean_auc = nanmean(group.unscram);
 group.sd_auc = nanstd(group.unscram);
 
+if save
+  save(fullfile(analysis_dir, 'group_summary.mat'),'group');
+end
 % what should go here, you ask? something to set up a visualization of the
 % average aucs across all the subjects, of course!
