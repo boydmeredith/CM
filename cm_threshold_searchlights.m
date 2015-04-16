@@ -2,6 +2,7 @@ root_dir = '/Volumes/awagner/wagner/jtboyd/CMret/Data/Functional/sl_mvpa';
 cd(root_dir);
 tr_sl_dirs = dir('trByTr*');
 tr_sl_dir_names = {tr_sl_dirs.name};
+file_to_test = 'abs_mean_auc_diff_chance_p0.01_minuspt5.nii'
 extents    = [53 63 86]; % minimal cluster size.. 
 %iterate through result images
 for d = 1:length(tr_sl_dir_names)
@@ -9,8 +10,8 @@ for d = 1:length(tr_sl_dir_names)
     for k = extents
         cd(fullfile(root_dir, tr_sl_dir_names{d}));
         fprintf('Examining results from %s\nApplying extent threshold of %d\n', tr_sl_dir_names{d}, k);
-        ROI = fullfile(root_dir, tr_sl_dir_names{d}, 'mean_auc_diff_chance_p0.01_minuspt5.nii'); % input image (binary, ie a mask)
-        ROIf = fullfile(root_dir, tr_sl_dir_names{d}, sprintf('mean_auc_diff_chance_p0.01_minuspt5_k%04d.nii',k)); % output image (filtered on cluster size)
+        ROI = fullfile(root_dir, tr_sl_dir_names{d}, file_to_test); % input image (binary, ie a mask)
+        ROIf = fullfile(root_dir, tr_sl_dir_names{d}, sprintf('%s_k%04d.nii',file_to_test,k)); % output image (filtered on cluster size)
         %-Connected Component labelling
         V = spm_vol(ROI);
         dat = spm_read_vols(V);
