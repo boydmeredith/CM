@@ -81,7 +81,7 @@ end
 
 function [cv resS] = CM_singleSubjProc(s, qqq, xvalIterToReport, task)
 % behavioral analysis
-par = CM_Params(s, task, 0);
+par = CM_Params(s, task, 0, 1);
 [~,~,idxB] = CM_fMRIBehAnalysis(par);
 resS = qqq.subj{s}.penalty.nVox.weights.expt;
 for resit = 1:length(qqq.subj{s}.penalty.nVox.weights.iter)

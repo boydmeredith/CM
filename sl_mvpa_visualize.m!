@@ -1,0 +1,23 @@
+function [h] = sl_mvpa_group_vis(analysis_name, thresh, saveSPM)
+FUNC_DIR = '/Users/Jesse/fMRI/COUNTERMEASURES/Data/Functional/';
+SL_DIR = fullfile(FUNC_DIR,'sl_mvpa');
+analysis_dir = fullfile(SL_DIR, analysis_name);
+group_file = fullfile(analysis_dir, 'group_summary.mat');
+
+SUBJ_EG_FILE = fullfile(FUNC_DIR, 'CM001/mvpa/CM001_SEPT09_MVPA_MASK_resliced4mm.nii_s8mm_wa.mat');
+
+% load for the corresponding group summary file. if it doesn't exist, create it
+if exist(group_file, 'file')
+	g = load(group_file);
+else
+	g.group = sl_mvpa_postProc(analysis_name,0);
+end
+
+% find voxels who showed values significantly different from chance (where significance is defined by thresh)
+supra_thresh_ix = find(g.group.p>thresh);
+supra_thresh_auc = zeros(size(g.mean_auc));
+supra_thresh_auc = zeros(size(g.mean_auc));
+supra_thresh_auc_mean(supra_thresh_ix) = g.mean_auc(supra_thresh_ix);
+supra_thresh_auc_sd(supra_thresh_ix) = g.sd_auc(supra_thresh_ix);
+% for now, let's load a relevant subject classification struct
+subj_eg = load(SUBJ_EG_FILE);

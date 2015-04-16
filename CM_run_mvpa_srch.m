@@ -1,7 +1,10 @@
-function [Subj res] = CM_run_mvpa_srch(subjArray, classification_name, proclus)
+function [Subj res] = CM_run_mvpa_srch(subjArray, classification_name, proclus, varargin)
+% function [Subj res] = CM_run_mvpa_srch(subjArray, classification_name, proclus)
 % Runs a searchlight classification analysis on the countermeasures dataset
 % Args:
 %   subjArray: array of subject numbers to include in the analysis
+%   classification_name: will put results in file of this name
+%   proclus: allows setting up paths approriately for local machine vs proclus
 %
 % Returns:
 %   Map of highest classification performance
@@ -33,38 +36,39 @@ statmap_srch_arg.scratch = scratch;
 % iterate through each subject performing classification
 for iSub = subjArray
     % load relevant mvpa and experiment parameters
-    [Expt, classArgs, par] = CM_mvpa_params(iSub, 'ret', proclus);
+    [expt, classArgs, par] = CM_mvpa_params(iSub, 'ret', proclus);
+    expt = acceptUserInput(expt,varargin);
     % create necessary strings
-    Expt.sl_selector_to_use = SL_SELECTOR_TO_USE;
-    subjId = sprintf(Expt.subjIdFormat,iSub);
-    Expt.saveName = cm_make_sl_savename(Expt);
-    Expt.impMapDirStr = fullfile(Expt.dir, '/mvpa_results/importance_maps/', Expt.saveName);
-    Expt.roiFname = fullfile(Expt.dir,'Masks',Expt.roiName);
-    thisMvpaDir = fullfile(Expt.dir, subjId, Expt.mvpaDirStr);
-    Expt.subjFname = fullfile(thisMvpaDir, [subjId '_' Expt.roiName '_s8mm_wa.mat']);
+    expt.sl_selector_to_use = SL_SELECTOR_TO_USE;
+    subjId = sprintf(expt.subjIdFormat,iSub);
+    expt.saveName = cm_make_sl_savename(expt);
+    expt.impMapDirStr = fullfile(expt.dir, '/mvpa_results/importance_maps/', expt.saveName);
+    expt.roiFname = fullfile(expt.dir,'Masks',expt.roiName);
+    thisMvpaDir = fullfile(expt.dir, subjId, expt.mvpaDirStr);
+    expt.subjFname = fullfile(thisMvpaDir, [subjId '_' expt.roiName '_s8mm_wa.mat']);
     
     
     % training and testing on the same TR, whether you like it or not
-    assert(isequal(Expt.trWeights_train, Expt.trWeights_test));
-    Expt.trWeights = Expt.trWeights_train;
+    %assert(isequal(expt.trWeights_train, expt.trWeights_test));
+    expt.trWeights = expt.trWeights_train;
     
     % load or create the subj structure and output a summary
-    if ~exist(Expt.subjFname,'file')
-        Subj = CM_mvpa_load_and_preprocess_raw_data(subjId, Expt, nRuns, 1);
+    if ~exist(expt.subjFname,'file')
+        Subj = CM_mvpa_load_and_preprocess_raw_data(subjId, expt, nRuns, 1);
     else
-        Subj = load(Expt.subjFname,'subj');
+        Subj = load(expt.subjFname,'subj');
         Subj=Subj.subj;
     end
     summarize(Subj);
     
     % load onsets and names of scan files
-    onsetsFile = fullfile(thisMvpaDir, Expt.onsetsFname);
-    Expt.ons = load(onsetsFile);
-    Expt.scanfiles = vertcat(par.swascanfiles.(par.task));
+    onsetsFile = fullfile(thisMvpaDir, expt.onsetsFname);
+    expt.ons = load(onsetsFile);
+    expt.scanfiles = vertcat(par.swascanfiles.(par.task));
     
     % condense onsets and patterns
     fprintf('\n\nPrepping onsets and patterns for CM%03d...',iSub);
-    Subj = cm_condense_onsets_and_patterns(Subj, Expt);
+    Subj = cm_condense_onsets_and_patterns(Subj, expt);
     summarize(Subj);
     
     active_trials = find(sum(get_mat(Subj,'regressors','conds')));
@@ -72,7 +76,7 @@ for iSub = subjArray
     actives_selector(active_trials) =1;
     Subj = initset_object(Subj,'selector','conditions_of_interest',actives_selector);
     
-    % create selectors that will determine training and testing scheme
+  % create selectors that will determine training and testing scheme
     fprintf('\n\nPrepping selectors for CM%03d...',iSub);
     Subj = cm_create_sl_selectors(Subj);
     
@@ -80,13 +84,13 @@ for iSub = subjArray
     
     Subj_prebalancing = Subj;
     
-    for iResIteration = 1:Expt.num_results_iter
+    for iResIteration = 1:expt.num_results_iter
         
         Subj = Subj_prebalancing;
         new_active_trials = [];
         new_actives_selector = zeros(1,size(Subj.regressors{1}.mat,2));
         
-        if Expt.equate_number_of_trials_in_cond_1_and_2
+        if expt.equate_number_of_trials_in_cond_1_and_2
             Subj = create_balanced_xvalid_selectors_searchlight(Subj, 'conds',SL_SELECTOR_TO_USE);
         end
         
@@ -106,7 +110,7 @@ for iSub = subjArray
             'conditions_of_interest_bal_within_runs', new_actives_selector);
         active_trials = new_active_trials;
         
-        if Expt.perform_second_round_of_zscoring
+        if expt.perform_second_round_of_zscoring
             display('Performing second round of z-scoring');
             pat_ix = get_number(Subj,'pattern','epi_d_hp_z_condensed');
             Subj.patterns{pat_ix}.mat(:,active_trials) = zscore(Subj.patterns{pat_ix}.mat(:,active_trials)')';
@@ -116,7 +120,7 @@ for iSub = subjArray
         % create spheres to use for classification. given some radius,
         % produce a matrix of nvox_in_mask x nvox_in_sphere where row i
         % contains the voxels in the sphere centered at voxel i
-        Subj.adj_sphere = create_adj_list(Subj,Expt.roiName,'radius',Expt.srch_radius);
+        Subj.adj_sphere = create_adj_list(Subj,expt.roiName,'radius',expt.srch_radius);
         statmap_srch_arg.adj_list = Subj.adj_sphere;
         
         
@@ -147,7 +151,7 @@ for iSub = subjArray
                
         % visualize 1st resulting searchlight pattern
         figure;
-        Subj = load_spm_mask(Subj,'wholebrain',fullfile(Expt.dir, '/Masks/SEPT09_MVPA_MASK_resliced4mm.nii'));
+        Subj = load_spm_mask(Subj,'wholebrain',fullfile(expt.dir, '/Masks/SEPT09_MVPA_MASK_resliced4mm.nii'));
         if ~proclus
 		view_pattern_overlay(Subj,'wholebrain','epi_d_hp_z_condensed_srch_1',...
             'over_cmap','redblue','autoslice',true)
@@ -156,9 +160,9 @@ for iSub = subjArray
         if iResIteration == 1
             res = Subj.patterns{end};
             res.masks =  Subj.masks;
-            res.auc = nan(Subj.patterns{end}.matsize(1), Expt.num_results_iter);
-            res.auc_scram_regs = nan(Subj.patterns{end}.matsize(1), Expt.num_results_iter);
-            res.parameters = Expt;
+            res.auc = nan(Subj.patterns{end}.matsize(1), expt.num_results_iter);
+            res.auc_scram_regs = nan(Subj.patterns{end}.matsize(1), expt.num_results_iter);
+            res.parameters = expt;
         end
         res.auc(:,iResIteration) = get_mat(Subj,'pattern','epi_d_hp_z_condensed_srch_1');
         res.auc_scram_regs(:,iResIteration) = get_mat(Subj,'pattern','epi_d_hp_z_condensed_srch_scrambled_1');
@@ -174,7 +178,7 @@ for iSub = subjArray
         
     end
     
-    saveDir = fullfile(Expt.dir, 'sl_mvpa', classification_name);
+    saveDir = fullfile(expt.dir, 'sl_mvpa', sprintf('%s_tr%iToTr%i', classification_name, find(expt.trWeights_train),find(expt.trWeights_test)));
     if ~exist(saveDir,'dir')
         mkdir(saveDir);
     end
@@ -334,5 +338,7 @@ end
 
 
 end
+
+
 
 
