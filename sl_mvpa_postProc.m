@@ -1,6 +1,8 @@
 function [group] = sl_mvpa_postProc(analysis_name, save)
 S_ARR = [1, 3:10, 12:24];
-SL_DIR = '/hsgs/projects/awagner/jtboyd/CM_ret/Data/Functional/sl_mvpa';
+root_dir = '/Volumes/awagner/wagner/jtboyd/'; 
+FUNC_DIR = [root_dir 'CMret/Data/Functional/'];
+SL_DIR = fullfile(FUNC_DIR, 'sl_mvpa');
 analysis_dir = fullfile(SL_DIR, analysis_name);
 
 for iSub = S_ARR
@@ -26,8 +28,8 @@ for iSub = S_ARR
     group.scram(iSub, :) = nanmean(this_res.res.auc_scram_regs,2);
 end
 
-[group.h, group.p, group.ci, group.tstats] = ttest(group.scram, group.unscram);
-[group.vspt5.h group.vspt5.p] = ttest(group.unscram, .5)
+[group.h, group.p, group.ci, group.tstats] = ttest(group.unscram, group.scram);
+[group.vspt5.h group.vspt5.p group.vspt5.ci group.vspt5.tstats] = ttest(group.unscram-.5)
 group.mean_auc = nanmean(group.unscram);
 group.sd_auc = nanstd(group.unscram);
 group.max_auc = max(nanmean(group.unscram));
@@ -35,5 +37,4 @@ group.min_auc = min(nanmean(group.unscram));
 if save
   save(fullfile(analysis_dir, 'group_summary.mat'),'group');
 end
-% what should go here, you ask? something to set up a visualization of the
-% average aucs across all the subjects, of course!
+
