@@ -5,21 +5,24 @@ tr_sl_dir_names = {tr_sl_dirs.name};
 file_to_test = 'mean_auc_diff_chance_p0.01_minuspt5.nii'
 extents    = [22 29]; % minimal cluster size..
 %iterate through result images
+max_pos = zeros(length(extents),6); min_pos = zeros(length(extents),6); max_neg = zeros(length(extents),6); min_neg = zeros(length(extents),6);
 for d = 1:length(tr_sl_dir_names)
     %iterate through cluster thresholds
     for k = extents
+        
         cd(fullfile(root_dir, tr_sl_dir_names{d}));
         fprintf('Examining results from %s\nApplying extent threshold of %d\n', tr_sl_dir_names{d}, k);
         ROI = fullfile(root_dir, tr_sl_dir_names{d}, file_to_test); % input image (binary, ie a mask)
         ROIf = fullfile(root_dir, tr_sl_dir_names{d}, sprintf('both_%s_k%04d.nii',file_to_test,k)); % output image (filtered on cluster size)
 %         ROIf_pos = fullfile(root_dir, tr_sl_dir_names{d}, sprintf('pos_%s_k%04d.nii',file_to_test,k)); % output image (filtered on cluster size)
 %         ROIf_neg = fullfile(root_dir, tr_sl_dir_names{d}, sprintf('neg_%s_k%04d.nii',file_to_test,k)); % output image (filtered on cluster size)
-%         %-Connected Component labelling
-%         V = spm_vol(ROI);
-%         dat = spm_read_vols(V);
-%         [l2_pos, num_pos] = spm_bwlabel(double(dat > 0),26);
-%         
+        
+        %-Connected Component labelling
+        V = spm_vol(ROI);
+        dat = spm_read_vols(V);
+        
 %         %% positive values:
+%         [l2_pos, num_pos] = spm_bwlabel(double(dat > 0),26);
 %         if ~(num_pos), warning('No positive clusters found.'); end
 %         %-Extent threshold, and sort clusters according to their extent for
 %         %positive values
@@ -73,6 +76,9 @@ for d = 1:length(tr_sl_dir_names)
         spm_write_vol(V,(l~=0).*dat); % save as binary image. Remove '~=0' so as to
         % have cluster labels as their size.
         % or use (l~=0).*dat if input image was not binary
+        i = find(extents==k);
+        max_pos(i, d) = max(dat(find(dat>0)));        min_pos(i, d) = min(dat(find(dat>0)));
+        max_neg(i, d) = max(dat(find(dat<0)));        min_neg(i, d) = min(dat(find(dat<0)));
     end
 end
 
