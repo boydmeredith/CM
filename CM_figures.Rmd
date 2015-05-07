@@ -33,13 +33,13 @@ plotformat=theme(title= element_text(size=17),axis.title = element_text(size=17)
 We'll have to be a little bit clever about getting our color palette into the plots, but the 50% chanceline and plotformats we can just do by adding them to our ggplots, i.e. `myplot + fiftyline`. so simple!
 
 If I wasn't using this document as an R markdown tutorial, I would probably not show this code chunk in the html output. I could have hidden it by adding `echo=FALSE` to the code chunk header (note: code chunk headers are the thing in the Rmd that looks like :
-```{r <chunk_title>, echo=TRUE, fig.width = 5}```
+```{r <chunk_title>, echo=TRUE, fig.width = 5, fig.height = 3}```
 
 #Load the data
 Now that we've got that setup, we'll **grab the data** that we plan to use a bunch from our 'results_sheets' directory.
 
 ```{r load_data}
-dir = "~/cm/Scripts/results_sheets" #all our results csvs live here 
+dir = "~/cm/results_sheets" #all our results csvs live here 
 #specify the name of each results sheet we'll use
 behav_dat_file = sprintf("%s/cm_behav_to_r.csv",dir)
 univ_dat_file = sprintf("%s/CM_betas_toR.csv",dir)
@@ -99,7 +99,7 @@ plotUnivBetas <- function(pl_df){
 h<-ggplot(pl_df, aes(x=interaction(acc,task), y=mean_beta,ymin=min_beta,ymax=max_beta, fill = task))+#tells our plot what value to put on the x-axis and y-axis and to group values by task. If we tried to plot now, it would say "no layers in plot" and show nothing
    geom_bar(stat='identity',color='black')+
   geom_errorbar(position=position_dodge(1), width=0, size=1, color='black')+#here's the meat of the plot. this specifies that we want points with error bars, tells it what values to use for the error bars, how big their should be, and that they should be 'dodged' by grouping on the x-axis
-  scale_fill_manual(values=cbPalette,name="Task",breaks=c("ex","cm"),labels=c("Explicit","Countermeasures"))+
+  scale_fill_manual(values=cbPalette,name="Task",breaks=c("ex","cm"),labels=c("EX","CM"))+
   labs(x="Memory",y="Parameter estimate")+#here we specify what the labels should be
 scale_x_discrete(breaks=c("hit.ex","cr.ex","hit.cm","cr.cm"),labels=c("Hit","CR","Hit","CR"))+
     plotformat + #this just tells our plot that it should have axis labels of a certain size, etc (see "Setup plotting variables" section)
@@ -109,7 +109,7 @@ return(h)
 ```
 
 Let's look at a first pass with all of the univariate data
-```{r first pass univ plot, fig.width=10, fig.height=6}
+```{r first pass univ plot, fig.width=10, fig.height=3}
 plotUnivBetas(univ_dfS)+  theme(legend.position=c(.85,0.2))+ #let's we move the legend into a postion that's currently vacant 
 facet_wrap(~roi+Contrast+shape,scales='free_y')#We'll 'facet' by the remaining factors, thereby making a separate plot for each combo of the factors. Note that we have to specify that y axis can be different in each facet. Now, we've got something we can actually think about plotting. 
 ```
@@ -153,8 +153,9 @@ univ_dfS_ms<-subset(univ_dfS_ms,roi %in% c("Left Ang", "Left Hipp", "Left IPS"))
 univ_dfS_ms$roi = factor(univ_dfS_ms$roi, labels=c("Left AnG", "Left Hippocampus", "Left IPS"))
 ```
 
-```{r plot betas in rois for ms,  fig.width=12, fig.height=4}
-plotUnivBetas(subset(univ_dfS_ms, shape=='cluster'))+facet_wrap(~roi,scales='free_y')
+```{r plot betas in rois for ms,  fig.width=9, fig.height=2.75}
+plotUnivBetas(subset(univ_dfS_ms, shape=='cluster'))+facet_wrap(~roi,scales='free_y')+theme(strip.background = element_rect(colour="white", fill="white"))
+
 ```
 
 
@@ -349,7 +350,7 @@ mvpa_accbyconf_df$bin_name = factor(mvpa_accbyconf_df$bin_name,
 
 
 ###Fit a model and make a plot of accuracy by percentile confidence
-```{r plot accuracy by confidence percentile}
+```{r plot accuracy by confidence percentile, fig.height=6, fig.width=6}
 
 confacc_ag<-ddply(mvpa_accbyconf_df,c("bin_num","name"),summarise,N=length(acc),mean_acc=mean(acc),sd_acc = sd(acc), sem_acc=sd_acc/sqrt(N), min_acc = mean_acc-sem_acc, max_acc = mean_acc+sem_acc)
 
@@ -360,11 +361,19 @@ grid <- with(mvpa_accbyconf_df, expand.grid(
 ))
 grid$acc<-stats::predict(model,newdata=grid)
 
-confacc_plt<-ggplot(mvpa_accbyconf_df,aes(x=bin_num,y=acc,group=name,color=name))+plotformat+labs(x='Percentile confidence bin',y=expression("p(Classifier correct)"),title="Classifier accuracy\nby confidence")+theme(axis.text.x  = element_text(angle=70, vjust=0.5))
+confacc_plt<-ggplot(mvpa_accbyconf_df,aes(x=bin_num,y=acc,group=name,color=name))+plotformat+labs(x='Percentile confidence bin',y="Classifier accuracy",title="Classifier performance by confidence")+theme(axis.text.x  = element_text(angle=70, vjust=0.5))
 
-confacc_plt+geom_pointrange(data=confacc_ag,aes(x=bin_num,y=mean_acc,ymin=min_acc,ymax=max_acc,shape=name),size=1)+  geom_line(data=grid,size=.75) + scale_x_continuous(labels=mvpa_accbyconf_df$bin_name[seq(1,20,2)],breaks=seq(1,20,2))+scale_color_manual(breaks=c("extocm_late","extocm_tr3","extoex_late"),labels=c("EX>CM, late TRs", "EX>CM, 3rd TR","EX (cross-validated), late TRs"),name='Classifier',values=cbPalette[c(2,2,1)])+scale_shape_manual(breaks=c("extocm_late","extocm_tr3","extoex_late"),labels=c("EX>CM, late TRs", "EX>CM, 3rd TR","EX (cross-validated), late TRs"),name='Classifier',values=c(16,17,16))
+labs = list(expression(paste("EX", symbol('\256'), "CM, late TRs")), expression(paste("EX" , symbol('\256'), "CM, 3rd TR")),"EX (cross-validated), late TRs")
 
-confacc_ag
+confacc_plt=confacc_plt+geom_pointrange(data=confacc_ag,aes(x=bin_num,y=mean_acc,ymin=min_acc,ymax=max_acc,shape=name),size=1)+  
+  geom_line(data=grid,size=.75) + 
+  scale_x_continuous(labels=mvpa_accbyconf_df$bin_name[seq(1,20,2)],breaks=seq(1,20,2))+
+  scale_color_manual(breaks=c("extocm_late","extocm_tr3","extoex_late"),labels=labs,name='',values=cbPalette[c(2,2,1)])+
+  scale_shape_manual(breaks=c("extocm_late","extocm_tr3","extoex_late"),labels=labs,name='',values=c(16,17,16))
+
+confacc_plt+theme(legend.position=c(.25, .87))
+
+#confacc_ag
 
 ```
 
@@ -399,11 +408,12 @@ ggplot(excmtr3,aes(y=auc,x=cm_d))+geom_smooth(method="lm")+geom_point(size=3,fil
 
 ##Fig 6. CM>CM and CM>EX Violins!
 
-```{r plot train_cm violins}
+```{r plot train_cm violins, fig.width=5, fig.eight=6}
 plotMvpaViolin(subset(latetrs_mvpa_df,train_test %in% c('CM,4fold','CM>EX')))+
-  labs(y="Classifier Performance (AUC)", x="Testing Data (task)", title="Classifier Trained on CM")+
-  scale_fill_manual(values=cbPalette[c(2,1)],name="Testing Data",breaks=c("CM,4fold","CM>EX"),labels=c("CM (cross-validated)","EX"))+
-  scale_x_discrete(breaks=c("CM,4fold","CM>EX"),labels=c("CM","EX"))
+  labs(y="Classification Performance (AUC)", x="Testing Data (task)", title="Decoding Performance")+
+  scale_fill_manual(values=cbPalette[c(2,1)],name="",breaks=c("CM,4fold","CM>EX"),labels=c("CM (cross-validated)","EX"))+
+  scale_x_discrete(breaks=c("CM,4fold","CM>EX"),labels=c("",""))+
+  theme(legend.position=c(.67, .83),axis.ticks.x=element_blank())
 ```
 
 
